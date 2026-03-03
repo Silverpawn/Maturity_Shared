@@ -1,0 +1,157 @@
+/* Siemens Energy brand color definitions */
+:root {
+  /* Primary colors */
+  --se-dark-purple: #1B1534;
+  --se-medium-purple: #4D217A;
+  --se-purple: #641E8C;
+  --siemens-petrol: #009999;
+  --black: #000000;
+  --white: #ffffff;
+  /* Secondary & accent colors */
+  --se-bright-purple: #8A00E5;
+  /* Browns */
+  --se-brown0: #EFEBEA;
+  --se-brown1: #CFC0BE;
+  --se-brown2: #AF9E9C;
+  --se-brown3: #8F7C7A;
+  --se-brown4: #7D6766;
+  --se-brown5: #564646;
+  /* Grays */
+  --se-gray0: #EAF4F8;
+  --se-gray1: #D7E4EE;
+  --se-gray2: #B8CEDB;
+  --se-gray3: #96B0C0;
+  --se-gray4: #7B919D;
+  --se-gray5: #54646E;
+  /* Greens */
+  --se-green0: #DCFFDC;
+  --se-green1: #00FD79;
+  --se-green2: #14DA79;
+  --se-green3: #27B66D;
+  --se-green4: #009B55;
+  --se-green5: #006C3B;
+  /* Blues */
+  --se-blue0: #CAF9FF;
+  --se-blue1: #6ADDFF;
+  --se-blue2: #21C0FF;
+  --se-blue3: #0084E1;
+  --se-blue4: #0057C6;
+  --se-blue5: #00328C;
+  /* Yellows */
+  --se-yellow0: #FCFCB5;
+  --se-yellow1: #FFF91F;
+  --se-yellow2: #F6E600;
+  --se-yellow3: #E2D000;
+  --se-yellow4: #C6AE00;
+  --se-yellow5: #8C7500;
+  /* Hot and Cold (light background) */
+  --hot-light: #DA1E28;
+  --cold-light: #0057C6;
+  --hot-dark: #E85960;
+  --cold-dark: #0084E1;
+}
+
+/*
+  Typography overrides to ensure sufficient contrast on dark and light backgrounds.
+  When content sits on a dark purple page background (e.g., body uses var(--se-purple)), default Tailwind gray
+  classes become difficult to read. We override common gray and slate text utilities to white
+  for elements inside the page body. Conversely, text inside white panels should be dark.
+*/
+body {
+  /* Default body text color on dark backgrounds */
+  color: var(--se-gray0);
+}
+
+/* Ensure any text within a white background panel is black for readability */
+.bg-white,
+.bg-white * {
+  color: var(--black) !important;
+}
+
+/* Ensure modal dialogs always use dark text for readability on white backgrounds */
+.modal-content,
+.modal-content * {
+  color: var(--black) !important;
+}
+
+/* Within modal dialogs, override any Tailwind gray or slate text utilities to ensure high
+   contrast against the white modal background. Include lighter shades (300/400) as well. */
+.modal-content .text-gray-300,
+.modal-content .text-gray-400,
+.modal-content .text-gray-500,
+.modal-content .text-gray-600,
+.modal-content .text-gray-700,
+.modal-content .text-gray-800,
+.modal-content .text-gray-900,
+.modal-content .text-slate-300,
+.modal-content .text-slate-400,
+.modal-content .text-slate-500,
+.modal-content .text-slate-600,
+.modal-content .text-slate-700,
+.modal-content .text-slate-800,
+.modal-content .text-slate-900 {
+  color: var(--black) !important;
+}
+
+/* Make text inside very light gray backgrounds dark as well. Tailwind often uses
+   bg-gray-50/100/200 and bg-slate-50/100/200 for panels; without this override
+   the default gray text appears on light panels and is hard to read. */
+.bg-gray-50, .bg-gray-50 *,
+.bg-gray-100, .bg-gray-100 *,
+.bg-gray-200, .bg-gray-200 *,
+.bg-slate-50, .bg-slate-50 *,
+.bg-slate-100, .bg-slate-100 *,
+.bg-slate-200, .bg-slate-200 * {
+  color: var(--black) !important;
+}
+
+/* Override common gray and slate Tailwind text colors on purple pages to white */
+body .text-gray-500,
+body .text-gray-600,
+body .text-gray-700,
+body .text-gray-800,
+body .text-gray-900,
+body .text-slate-500,
+body .text-slate-600,
+body .text-slate-700,
+body .text-slate-800,
+body .text-slate-900 {
+  color: var(--se-gray0) !important;
+}
+
+/* Within white backgrounds, override gray classes to black */
+.bg-white .text-gray-500,
+.bg-white .text-gray-600,
+.bg-white .text-gray-700,
+.bg-white .text-gray-800,
+.bg-white .text-gray-900,
+.bg-white .text-slate-500,
+.bg-white .text-slate-600,
+.bg-white .text-slate-700,
+.bg-white .text-slate-800,
+.bg-white .text-slate-900 {
+  color: var(--black) !important;
+}
+
+/* Adjust placeholder color on inputs/textareas for visibility on dark backgrounds */
+body input::placeholder,
+body textarea::placeholder {
+  color: var(--se-gray2);
+}
+
+/* Inputs and textareas should use dark text for readability on light backgrounds */
+body input,
+body textarea,
+body select {
+  color: var(--black);
+}
+
+/* Ensure flashcard content in the Maturity Assessment uses dark text for readability on colored backgrounds */
+.flashcard .main-question,
+.flashcard .text-gray-300,
+.flashcard .text-slate-600,
+.flashcard .text-slate-500,
+.flashcard .text-slate-700,
+.flashcard .text-slate-800 {
+  color: var(--black) !important;
+}

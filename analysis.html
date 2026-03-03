@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lean Maturity Analysis</title>
+    <link rel="stylesheet" href="assets/fonts.css">
+    <link rel="stylesheet" href="assets/brand.css">
+    <link rel="stylesheet" href="styles.css">
+    <script src="assets/tailwind.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script>
+        // Expose jsPDF globally
+        if (window.jspdf && window.jspdf.jsPDF) {
+            window.jsPDF = window.jspdf.jsPDF;
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #4D217A;
+            color: var(--se-gray0);
+        }
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-in-out;
+        }
+        .accordion-header.active + .accordion-content {
+            max-height: 2000px; /* Increased for potentially longer content */
+        }
+        .rotate-180 {
+            transform: rotate(180deg);
+        }
+        .transition-transform {
+            transition: transform 0.3s ease;
+        }
+        #csvFileInput {
+            width: 0.1px;
+            height: 0.1px;
+            opacity: 0;
+            overflow: hidden;
+            position: absolute;
+            z-index: -1;
+        }
+        #csvFileLabel {
+            cursor: pointer;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+        .modal-overlay.visible .modal-content {
+            transform: scale(1);
+        }
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #report-content, #report-content * {
+                visibility: visible;
+            }
+            #report-content {
+                position: absolute;
+                left: 0;
+                top: 0;
+            }
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8 text-white rounded-lg p-6">
+            <h1 class="text-3xl md:text-4xl font-bold">Lean Maturity Analysis</h1>
+            <p class="text-md mt-2">Aligned to the Lean Transformation Roadmap</p>
+        </header>
+
+        <div class="flex justify-between items-center max-w-4xl mx-auto mb-6">
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-500"></div>
+                <span class="text-xs mt-1 step-label">Assess</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-[#009999]"></div>
+                <span class="text-xs mt-1 step-label">Analyse</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-500"></div>
+                <span class="text-xs mt-1 step-label">Prepare</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-500"></div>
+                <span class="text-xs mt-1 step-label">Align</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-500"></div>
+                <span class="text-xs mt-1 step-label">Create</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-500"></div>
+                <span class="text-xs mt-1 step-label">Communicate</span>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8 border border-gray-200">
+            <div id="guide-accordion-header" class="accordion-header p-5 cursor-pointer flex justify-between items-center bg-gray-100">
+                <h2 class="text-xl font-semibold text-black">How to Use This Tool</h2>
+                <svg class="w-6 h-6 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+            <div class="accordion-content">
+                <div class="p-6 border-t border-gray-200">
+                    <ol class="list-decimal list-inside space-y-3 text-gray-700">
+                        <li>
+                            <strong class="font-semibold text-gray-900">Upload Your Data:</strong> Click the "Upload Assessment CSV" button and select your completed assessment file. The report will generate automatically, and assessment details will be populated.
+                        </li>
+                        <li>
+                            <strong class="font-semibold text-gray-900">Add Analysis Details:</strong> Enter the names of the analysts and the date of analysis in the "Analysis Details" section. This is saved automatically.
+                        </li>
+                        <li>
+                            <strong class="font-semibold text-gray-900">Review & Plan Actions:</strong> Click on each roadmap stage to expand it. For stages marked "Opportunity for Growth" or "Foundation Focus," accept the proposed action and add your own comments and specific next steps.
+                        </li>
+                        <li>
+                            <strong class="font-semibold text-gray-900">Consolidate & Export:</strong> Once you're done, click "View Action Report" to see a summary. From there, or from the main page, you can export your reports to PDF for sharing. Both reports will include the assessment and analysis details.
+                        </li>
+                    </ol>
+                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+                        <p><strong class="font-semibold">Important Note:</strong> This tool provides a preliminary analysis based on a standardized logic model. Think of it as a first draft—it's essential for your team to review, challenge, and enrich these findings with your unique organizational context.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-2 border-dashed border-blue-400">
+            <h2 class="text-xl font-semibold text-center mb-4">Optional: Co-pilot Analysis</h2>
+            <p class="text-center text-gray-600 max-w-2xl mx-auto mb-4">For a deeper, AI-driven analysis of your results, you can use the Co-pilot. First, export your results using the "Export Results (CSV)" button From the maturity assessment, then open the Co-pilot and paste your data.</p>
+            <p class="text-center text-xs text-gray-500 mb-4">Note: This will open in a new browser window and requires a Co-pilot license to access.</p>
+            <div class="text-center">
+                <a href="https://m365.cloud.microsoft:443/chat/?titleId=T_95c308b4-f759-ee04-97e8-758ad12bca98" target="_blank" rel="noopener noreferrer" class="inline-block bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300">
+                    Launch Co-pilot Analysis
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl shadow-md mb-8 border border-gray-200">
+            <h2 class="text-xl font-semibold text-center mb-4">1. Generate Your Assessment</h2>
+            <div class="flex flex-col items-center justify-center">
+                <input type="file" id="csvFileInput" accept=".csv">
+                <label for="csvFileInput" id="csvFileLabel" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300 text-center">
+                    Upload Assessment CSV
+                </label>
+                <p id="fileName" class="text-sm text-gray-500 mt-3"></p>
+                <p id="statusMessage" class="text-sm font-semibold mt-2"></p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <div id="assessment-details-container" class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                <h2 class="text-xl font-semibold text-center mb-4 border-b pb-2">Assessment Details</h2>
+                <div id="assessment-details-content" class="text-sm text-gray-700 space-y-2">
+                    <p class="text-center text-gray-500">Details will be populated from the uploaded CSV.</p>
+                </div>
+            </div>
+            <div id="analysis-details-container" class="bg-white p-6 rounded-xl shadow-md border border-gray-200">
+                <h2 class="text-xl font-semibold text-center mb-4 border-b pb-2">2. Add Analysis Details</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="analysed-by" class="block text-sm font-medium text-gray-700">Analysed By (one name per line)</label>
+                        <textarea id="analysed-by" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"></textarea>
+                    </div>
+                    <div>
+                        <label for="analysis-date" class="block text-sm font-medium text-gray-700">Analysis Date</label>
+                        <input type="date" id="analysis-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="text-center mb-6 flex flex-wrap justify-center gap-2">
+            <button id="expandAll" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300">Expand All</button>
+            <button id="collapseAll" class="bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-400 transition-colors duration-300">Collapse All</button>
+            <button id="viewReportBtn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300">View Action Report</button>
+            <button id="exportFullReportBtn" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition-colors duration-300">Export Full Report (PDF)</button>
+            <button id="exportCsvBtn" class="bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-purple-700 transition-colors duration-300">Export Results (CSV)</button>
+            <button id="exportPptBtn" class="bg-orange-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-orange-600 transition-colors duration-300">Export to PowerPoint</button>
+            <button id="resetBtn" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition-colors duration-300">Reset All Data</button>
+        </div>
+
+        <div id="accordionContainer" class="space-y-4">
+            <div class="text-center p-8 bg-white rounded-xl shadow-md">
+                <p class="text-gray-600">Please upload your Maturity Assessment CSV file to generate the report.</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="report-modal-overlay" class="modal-overlay">
+        <div id="report-modal-content" class="modal-content">
+            <button id="report-modal-close-btn" class="modal-close-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div id="report-to-export">
+                <div id="report-header-placeholder"></div>
+                <h2 class="text-2xl font-bold text-center mb-6">Consolidated Action Report</h2>
+                <div id="report-content" class="space-y-6"></div>
+            </div>
+            <div class="mt-4 text-center">
+                <button id="exportActionReportBtn" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition-colors duration-300">Export Action Report (PDF)</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="logic-modal-overlay" class="modal-overlay">
+        <div id="logic-modal-content" class="modal-content max-w-4xl">
+             <button id="logic-modal-close-btn" class="modal-close-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+            <div id="logic-content"></div>
+        </div>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- EMBEDDED ASSESSMENT CONFIGURATION ---
+            const ASSESSMENT_CONFIG_DATA = [
+                {
+                    "id": "pre-flight-check",
+                    "title": "Stage 0: Pre-Flight Check",
+                    "goal": "Assess the three basic requirements for starting a Lean journey: a compelling reason (crisis/challenge), committed leadership, and foundational knowledge.",
+                    "lookingFor": "We are looking for a fatal flaw before the journey even begins. This is the classic 'Go/No-Go' gate. Does the program have a purpose, a sponsor, and a basic shared language?",
+                    "diagnosticQ": [1, 2, 3],
+                    "logic": {
+                        "highRisk": [
+                            { "qNum": 1, "condition": "<=", "value": 2 },
+                            { "qNum": 2, "condition": "<=", "value": 2 }
+                        ],
+                        "warning": [
+                            { "qNum": 1, "condition": "<=", "value": 3 },
+                            { "qNum": 2, "condition": "<=", "value": 3 },
+                            { "qNum": 3, "condition": "<=", "value": 2 }
+                        ]
+                    },
+                    "recommendations": {
+                        "Foundation Focus": "Halt the program and focus on securing genuine leadership commitment (Q2) and defining a compelling business challenge (Q1).",
+                        "Opportunity for Growth": "The first action must be foundational training (Q3) to establish a common language before proceeding.",
+                        "Pass": "The program has met the basic 'Go/No-Go' criteria. Proceed with the detailed analysis."
+                    }
+                },
+                {
+                    "id": "leadership-commitment",
+                    "title": "Stage 1: Leadership Commitment",
+                    "goal": "Confirm that leadership is genuinely and actively committed to becoming a Lean company, providing the necessary sponsorship and resources.",
+                    "lookingFor": "We are checking if leadership's commitment goes beyond passive approval to active, visible engagement, coaching, and problem-solving at the Gemba.",
+                    "diagnosticQ": [1, 2, 20, 21],
+                    "logic": {
+                        "highRisk": [
+                            { "qNum": 1, "condition": "<=", "value": 2 },
+                            { "qNum": 2, "condition": "<=", "value": 2 }
+                        ],
+                        "warning": [
+                            { "qNum": 20, "condition": "<=", "value": 3 },
+                            { "qNum": 21, "condition": "<=", "value": 3 }
+                        ]
+                    },
+                    "recommendations": {
+                        "Foundation Focus": "Halt the program. The foundational requirements of a clear business reason (Q1) and active sponsorship (Q2) are not met.",
+                        "Opportunity for Growth": "Leadership must commit to being more visibly engaged at the workplace (Q20) and develop their Lean coaching skills (Q21).",
+                        "Pass": "Leadership commitment appears sufficient to proceed."
+                    }
+                },
+                {
+                    "id": "strategic-alignment",
+                    "title": "Stage 2: Strategic Alignment",
+                    "goal": "Align the organization around a core Business Challenge, using a structured system to cascade goals from leadership to the teams.",
+                    "lookingFor": "We're testing if a formal strategy system exists and if it successfully cascades clear, actionable objectives to the teams doing the work.",
+                    "diagnosticQ": [4, 8, 9],
+                    "logic": {
+                        "highRisk": [
+                            { "qNum": 8, "condition": "<=", "value": 2 }
+                        ],
+                        "warning": [
+                            { "qNum": 8, "condition": "<=", "value": 3 },
+                            { "qNum": 9, "condition": "<=", "value": 3 }
+                        ]
+                    },
+                    "recommendations": {
+                        "Foundation Focus": "A robust <strong>strategy management system</strong> (like Hoshin Kanri) must be established to translate high-level goals into concrete actions (Q8).",
+                        "Opportunity for Growth": "The <strong>Navigator Workshop</strong> must focus on creating a clear, one-page plan to improve how strategic goals are cascaded to teams (Q9).",
+                        "Pass": "Strategic alignment appears sufficient."
+                    }
+                },
+                {
+                    "id": "communication-training",
+                    "title": "Stage 3: Communication & Training",
+                    "goal": "Ensure teams have a deep and practical understanding of Lean principles through consistent, ongoing training and clear communication.",
+                    "lookingFor": "We are checking for both the presence and the effectiveness of training. Do people just attend sessions, or do they actually understand and apply the concepts?",
+                    "diagnosticQ": [3, 4, 5, 6, 28],
+                    "logic": {
+                        "highRisk": [
+                            { "qNum": 4, "condition": "<=", "value": 2 },
+                            { "qNum": 5, "condition": "<=", "value": 2 }
+                        ],
+                        "warning": [
+                            { "qNum": 3, "condition": "<=", "value": 3 },
+                            { "qNum": 6, "condition": "<=", "value": 3 }
+                        ]
+                    },
+                    "recommendations": {
+                        "Foundation Focus": "Immediately launch foundational training to address the core understanding gap in Lean principles and their connection to business goals (Q4, Q5).",
+                        "Opportunity for Growth": "Develop a structured plan for <strong>ongoing Lean learning</strong> to ensure consistency (Q6) and build upon initial foundational knowledge (Q3).",
+                        "Pass": "Communication and training protocols appear sufficient."
+                    }
+                },
+                {
+                    "id": "pilot-area-transformation",
+                    "title": "Stage 4: Pilot Area Transformation",
+                    "goal": "Successfully implement hands-on Lean practices in a focused area, supported by empowered teams with strong daily habits.",
+                    "lookingFor": "We're assessing if a pilot team has the basic habits of execution: daily management, employee-led improvement, and practical experience with core Lean tools.",
+                    "diagnosticQ": [10, 14, 15, 24],
+                    "logic": {
+                        "highRisk": [
+                            { "qNum": 14, "condition": "<=", "value": 2 },
+                            { "qNum": 15, "condition": "<=", "value": 2 }
+                        ],
+                        "warning": [
+                            { "qNum": 10, "condition": "<=", "value": 3 },
+                            { "qNum": 14, "condition": "<=", "value": 3 },
+                            { "qNum": 15, "condition": "<=", "value": 3 }
+                        ]
+                    },
+                    "recommendations": {
+                        "Foundation Focus": "The team is not ready for a full pilot. First, establish consistent <strong>Daily Huddles</strong> (Q14) and a system for employee suggestions (Q15).",
+                        "Opportunity for Growth": "Provide focused coaching on local tool application (Q10) to build the team's confidence before the pilot begins.",
+                        "Pass": "The pilot team appears ready for transformation activities."
+                    }
+                },
+                {
+                    "id": "expansion",
+                    "title": "Stage 5: Expansion",
+                    "goal": "Systematically expand proven Lean practices to other areas of the business, leveraging learnings from pilot projects to ensure success.",
+                    "lookingFor": "Are we about to prematurely scale a broken model? Have we built the systems for sharing learnings and best practices that are necessary for successful expansion?",
+                    "diagnosticQ": [17, 24, 25],
+                    "logic": {
+                        "highRisk": [
+                            { "qNum": 25, "condition": "<=", "value": 2 }
+                        ],
+                        "warning": [
+                            { "qNum": 17, "condition": "<=", "value": 3 },
+                            { "qNum": 24, "condition": "<=", "value": 3 }
+                        ]
+                    },
+                    "recommendations": {
+                        "Foundation Focus": "Halt expansion. The organization is not effectively spreading successful practices (Q25). Focus on building a robust system for knowledge sharing first.",
+                        "Opportunity for Growth": "Proceed with caution. Improve how the organization captures and shares learnings from pilots (Q17, Q24) before attempting a wider rollout.",
+                        "Pass": "The program is ready for systematic expansion."
+                    }
+                },
+                {
+                    "id": "value-stream-workshop",
+                    "title": "Stage 6: Value Stream Workshop",
+                    "goal": "Analyze the Current State of a key process and develop a Future State vision, using the right tools and tracking the right KPIs.",
+                    "lookingFor": "The 'Garbage In, Garbage Out' problem. Is the team ready to analyze a process if they don't consistently use tools to understand it or track its performance?",
+                    "diagnosticQ": [11, 12, 13],
+                    "logic": {
+                        "highRisk": [
+                            { "qNum": 12, "condition": "<=", "value": 2 }
+                        ],
+                        "warning": [
+                            { "qNum": 11, "condition": "<=", "value": 3 },
+                            { "qNum": 13, "condition": "<=", "value": 3 }
+                        ]
+                    },
+                    "recommendations": {
+                        "Foundation Focus": "A full <strong>Value Stream Workshop</strong> is premature. First, establish a system for tracking basic Lean KPIs (Q12).",
+                        "Opportunity for Growth": "Focus on improving the consistent use of foundational Lean tools (Q11) and ensure KPIs are aligned to Lean goals (Q13) before a large-scale analysis.",
+                        "Pass": "The team is ready for Value Stream analysis and planning."
+                    }
+                },
+                {
+                    "id": "governance-cadence",
+                    "title": "Stage 7: Governance & Cadence",
+                    "goal": "Establish a clear organizational structure and an effective review cadence to provide focus, accountability, and drive the transformation forward.",
+                    "lookingFor": "We're testing if the formal structure (roles, steering committees) is supported by strong cross-functional collaboration and a data-driven review process.",
+                    "diagnosticQ": [7, 26, 28],
+                    "logic": {
+                        "highRisk": [
+                            { "qNum": 26, "condition": "<=", "value": 2 }
+                        ],
+                        "warning": [
+                            { "qNum": 7, "condition": "<=", "value": 3 },
+                            { "qNum": 28, "condition": "<=", "value": 3 }
+                        ]
+                    },
+                    "recommendations": {
+                        "Foundation Focus": "Do not assign formal roles yet. First, launch a cross-functional improvement project to tackle the collaboration issues between silos (Q26).",
+                        "Opportunity for Growth": "The charter for the <strong>Steering Committee</strong> must include defining clear Lean roles and responsibilities (Q7). Reviews must include sharing success stories to build momentum (Q28).",
+                        "Pass": "The governance structure and cadence appear adequate."
+                    }
+                },
+                {
+                    "id": "continuous-improvement",
+                    "title": "Stage 8: Continuous Improvement",
+                    "goal": "Create a self-sustaining cycle of learning and improvement, supported by a culture of psychological safety where teams feel empowered to experiment.",
+                    "lookingFor": "The engine of the transformation. Is the cultural engine required for sustainable improvement—safety, reflection, and learning—actually running?",
+                    "diagnosticQ": [15, 16, 22, 23],
+                    "logic": {
+                        "highRisk": [
+                            { "qNum": 22, "condition": "<=", "value": 2 }
+                        ],
+                        "warning": [
+                            { "qNum": 16, "condition": "<=", "value": 3 },
+                            { "qNum": 23, "condition": "<=", "value": 3 }
+                        ]
+                    },
+                    "recommendations": {
+                        "Foundation Focus": "The #1 priority is psychological safety (Q22). Leaders must actively create an environment where it is safe to experiment and learn from failure.",
+                        "Opportunity for Growth": "Implement a structured cadence for <strong>learning and reflection practices</strong> (Q16, Q23) after every improvement cycle.",
+                        "Pass": "The continuous improvement cycle is functioning well."
+                    }
+                },
+                {
+                    "id": "collaborative-growth",
+                    "title": "Stage 9: Collaborative Growth",
+                    "goal": "Integrate Lean practices across all departments and extend the philosophy to external partners to optimize the entire value chain.",
+                    "lookingFor": "This is the final stage of maturity. We are looking for evidence of seamless cross-functional collaboration and active improvement projects with external partners.",
+                    "diagnosticQ": [18, 19, 26, 27],
+                    "logic": {
+                        "highRisk": [
+                            { "qNum": 19, "condition": "<=", "value": 2 }
+                        ],
+                        "warning": [
+                            { "qNum": 18, "condition": "<=", "value": 3 },
+                            { "qNum": 27, "condition": "<=", "value": 3 }
+                        ]
+                    },
+                    "recommendations": {
+                        "Foundation Focus": "Focus on improving internal integration (Q19) and breaking down silos before attempting to extend Lean practices externally.",
+                        "Opportunity for Growth": "Begin engaging with key suppliers and customers on the Lean philosophy (Q18) and plan the first joint improvement projects (Q27).",
+                        "Pass": "The organization is operating as a truly integrated Lean enterprise."
+                    }
+                }
+            ];
+            
+            // --- DOM ELEMENT REFERENCES ---
+            const fileInput = document.getElementById('csvFileInput');
+            const fileNameDisplay = document.getElementById('fileName');
+            const statusMessage = document.getElementById('statusMessage');
+            const accordionContainer = document.getElementById('accordionContainer');
+            const viewReportBtn = document.getElementById('viewReportBtn');
+            const reportModalOverlay = document.getElementById('report-modal-overlay');
+            const reportModalCloseBtn = document.getElementById('report-modal-close-btn');
+            const exportFullReportBtn = document.getElementById('exportFullReportBtn');
+            const exportActionReportBtn = document.getElementById('exportActionReportBtn');
+            const exportCsvBtn = document.getElementById('exportCsvBtn');
+            const exportPptBtn = document.getElementById('exportPptBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const guideAccordionHeader = document.getElementById('guide-accordion-header');
+            const analysedByInput = document.getElementById('analysed-by');
+            const analysisDateInput = document.getElementById('analysis-date');
+            const assessmentDetailsContent = document.getElementById('assessment-details-content');
+            const logicModalOverlay = document.getElementById('logic-modal-overlay');
+            const logicModalCloseBtn = document.getElementById('logic-modal-close-btn');
+
+            // --- STATE VARIABLES ---
+            let assessmentDataStore = [];
+            let assessmentMetadata = {};
+            let assessmentConfig = []; // Will hold the logic from the constant above
+
+            // --- EVENT LISTENERS ---
+            fileInput.addEventListener('change', handleFileSelect);
+            viewReportBtn.addEventListener('click', openReportModal);
+            reportModalCloseBtn.addEventListener('click', closeReportModal);
+            reportModalOverlay.addEventListener('click', (e) => { if (e.target === reportModalOverlay) closeReportModal(); });
+            exportFullReportBtn.addEventListener('click', exportFullReportToPdf);
+            exportActionReportBtn.addEventListener('click', exportActionReportToPdf);
+            exportCsvBtn.addEventListener('click', exportResultsToCsv);
+            exportPptBtn.addEventListener('click', exportAnalysisToPptx);
+            resetBtn.addEventListener('click', resetState);
+            guideAccordionHeader.addEventListener('click', () => {
+                guideAccordionHeader.classList.toggle('active');
+                guideAccordionHeader.querySelector('svg').classList.toggle('rotate-180');
+            });
+            analysedByInput.addEventListener('input', saveAnalysisDetails);
+            analysisDateInput.addEventListener('input', saveAnalysisDetails);
+            logicModalCloseBtn.addEventListener('click', closeLogicModal);
+            logicModalOverlay.addEventListener('click', (e) => { if (e.target === logicModalOverlay) closeLogicModal(); });
+
+            // --- INITIALIZATION ---
+            loadAnalysisDetails();
+            loadFromLocalStorage(); // Attempt to load saved session data on start
+
+            // --- CORE FUNCTIONS ---
+
+            /**
+             * Gets the assessment configuration from the embedded constant.
+             */
+            function getAssessmentConfig() {
+                if (assessmentConfig.length === 0) {
+                    assessmentConfig = ASSESSMENT_CONFIG_DATA;
+                }
+                if (!assessmentConfig || assessmentConfig.length === 0) {
+                    const errorMsg = 'Error: Assessment configuration data is not available.';
+                    statusMessage.textContent = errorMsg;
+                    statusMessage.className = 'text-sm font-semibold mt-2 text-red-600';
+                    throw new Error(errorMsg);
+                }
+                return assessmentConfig;
+            }
+
+            /**
+             * Handles the CSV file selection, parsing, and triggers the analysis.
+             */
+            function handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                if (!file.name.endsWith('.csv')) {
+                    statusMessage.textContent = 'Error: Please upload a valid .csv file.';
+                    statusMessage.className = 'text-sm font-semibold mt-2 text-red-600';
+                    fileNameDisplay.textContent = '';
+                    return;
+                }
+
+                fileNameDisplay.textContent = `Selected file: ${file.name}`;
+                statusMessage.textContent = 'Processing...';
+                statusMessage.className = 'text-sm font-semibold mt-2 text-blue-600';
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const csvText = e.target.result;
+                        localStorage.setItem('maturityAssessmentCSV', csvText); // Save CSV to localStorage
+                        processCsvText(csvText);
+                    } catch (error) {
+                        console.error("Error processing file:", error);
+                        statusMessage.textContent = `Error: ${error.message}. Check file format.`;
+                        statusMessage.className = 'text-sm font-semibold mt-2 text-red-600';
+                    }
+                };
+                reader.readAsText(file);
+            }
+            
+            /**
+             * Parses CSV text, extracts data, and runs the analysis workflow.
+             */
+            function processCsvText(text) {
+                try {
+                    const rows = text.split('\n');
+                    
+                    assessmentMetadata = parseCsvMetadata(rows);
+                    displayAssessmentDetails(assessmentMetadata);
+                    
+                    const data = parseCsvData(rows);
+                    if (data.length === 0) {
+                        throw new Error("No valid data rows found in CSV. Check for 'Number', 'Question', and 'Rating' columns.");
+                    }
+
+                    const config = getAssessmentConfig();
+                    assessmentDataStore = runEnhancedAssessmentLogic(data, config);
+                    loadActionData();
+                    renderResults(assessmentDataStore);
+                    statusMessage.textContent = 'Assessment Complete!';
+                    statusMessage.className = 'text-sm font-semibold mt-2 text-green-600';
+                } catch (error) {
+                    console.error("Failed to process CSV:", error);
+                    statusMessage.textContent = `Error: ${error.message}.`;
+                    statusMessage.className = 'text-sm font-semibold mt-2 text-red-600';
+                }
+            }
+            
+            /**
+             * Evaluates the verdict for a given stage based on rules from the config file.
+             * @param {object} logicRules - The 'logic' object from the config for a stage.
+             * @param {Array} data - The parsed CSV data.
+             * @returns {string} The verdict: 'Foundation Focus', 'Opportunity for Growth', or 'Pass'.
+             */
+            function evaluateVerdict(logicRules, data) {
+                const getRating = (qNum) => (data.find(row => row.qNum === qNum) || { rating: 0 }).rating;
+
+                const checkConditions = (conditions) => {
+                    return conditions.some(rule => {
+                        const rating = getRating(rule.qNum);
+                        switch (rule.condition) {
+                            case '<=': return rating <= rule.value;
+                            case '>=': return rating >= rule.value;
+                            case '==': return rating == rule.value;
+                            case '<':  return rating < rule.value;
+                            case '>':  return rating > rule.value;
+                            default: return false;
+                        }
+                    });
+                };
+
+                if (logicRules.highRisk && checkConditions(logicRules.highRisk)) {
+                    return 'Foundation Focus';
+                }
+                if (logicRules.warning && checkConditions(logicRules.warning)) {
+                    return 'Opportunity for Growth';
+                }
+                return 'Pass';
+            }
+
+            /**
+             * Main logic engine. Iterates through the config, evaluates each stage, and returns the results.
+             * @param {Array} data - Parsed CSV data.
+             * @param {Array} config - Assessment configuration from JSON.
+             * @returns {Array} An array of result objects for rendering.
+             */
+            function runEnhancedAssessmentLogic(data, config) {
+                const getQuestion = (qNum) => data.find(row => row.qNum === qNum) || { rating: 0, qNum: qNum, question: `Question #${qNum} not found`, comments: 'N/A' };
+                
+                // Process all stages except the special 'capstone' case first
+                const standardStages = config.filter(stage => stage.id !== 'collaborative-growth');
+                const results = standardStages.map(stage => {
+                    const verdict = evaluateVerdict(stage.logic, data);
+                    return {
+                        ...stage, // Spread all properties from config
+                        diagnostics: stage.diagnosticQ.map(qNum => getQuestion(qNum)),
+                        verdict: verdict,
+                        recommendation: stage.recommendations[verdict] || ''
+                    };
+                });
+
+                // Handle the special 'Collaborative Growth' (capstone) case
+                const capstoneConfig = config.find(stage => stage.id === 'collaborative-growth');
+                if (capstoneConfig) {
+                    let capstoneVerdict = 'Pass';
+                    // These questions are critical for the final stage of integration and collaboration
+                    const highRiskQuestions = [18, 19, 27].some(q => getQuestion(q).rating <= 2);
+                    const warningQuestions = [18, 19, 26, 27].some(q => getQuestion(q).rating <= 3);
+
+                    if (results.some(r => r.verdict === 'Foundation Focus') || highRiskQuestions) {
+                        capstoneVerdict = 'Foundation Focus';
+                    } else if (results.some(r => r.verdict === 'Opportunity for Growth') || warningQuestions) {
+                        capstoneVerdict = 'Opportunity for Growth';
+                    }
+                    
+                    results.push({
+                        ...capstoneConfig,
+                        diagnostics: capstoneConfig.diagnosticQ.map(qNum => getQuestion(qNum)),
+                        verdict: capstoneVerdict,
+                        recommendation: capstoneConfig.recommendations[capstoneVerdict] || ''
+                    });
+                }
+
+                return results;
+            }
+
+            function renderResults(results) {
+                accordionContainer.innerHTML = ''; // Clear placeholder
+                results.forEach(result => {
+                    const verdictMap = {
+                        'Pass': { color: 'green', icon: '✅' },
+                        'Opportunity for Growth': { color: 'yellow', icon: '💡' },
+                        'Foundation Focus': { color: 'red', icon: '🎯' }
+                    };
+                    const { color, icon } = verdictMap[result.verdict] || { color: 'gray', icon: '❓' };
+
+                    const diagnosticsHTML = result.diagnostics.length > 0
+                        ? result.diagnostics.map(d => `
+                            <li>
+                                <span class="font-semibold">Q${d.qNum}: ${d.question}</span> 
+                                <span class="font-bold ml-2 text-${d.rating <= 2 ? 'red' : (d.rating <= 3 ? 'yellow' : 'green')}-600">Score: ${d.rating}/5</span>
+                                ${d.comments ? `<em class="text-gray-500 block pl-4">- "${d.comments}"</em>` : ''}
+                            </li>
+                        `).join('')
+                        : `<p class="italic text-gray-600 mb-4">This review uses the results of all previous reviews.</p>`;
+                    
+                    const actionAcceptHTML = result.verdict !== 'Pass' ? `
+                        <div class="mt-4 flex items-center">
+                            <input type="checkbox" id="accept-${result.id}" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${result.actionAccepted ? 'checked' : ''}>
+                            <label for="accept-${result.id}" class="ml-3 block text-sm font-medium text-gray-700">Accept Proposed Action (Y/N)</label>
+                        </div>
+                    ` : '';
+
+                    const elementHTML = `
+                        <div class="bg-white rounded-xl shadow-md overflow-hidden">
+                            <div class="accordion-header p-5 cursor-pointer flex justify-between items-center bg-gray-100 border-l-8 border-${color}-500">
+                                <h2 class="text-xl font-semibold text-gray-800">${result.title}</h2>
+                                <svg class="w-6 h-6 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                            <div class="accordion-content">
+                                <div class="p-6 border-t border-gray-200">
+                                    <div class="flex justify-end mb-4">
+                                        <button class="view-logic-btn text-sm bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-1 px-3 rounded-lg" data-result-id="${result.id}">View Evaluation Logic</button>
+                                    </div>
+                                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Roadmap Goal</h3>
+                                    <p class="mb-4">${result.goal}</p>
+
+                                    <h3 class="text-lg font-semibold text-gray-700 mb-2">What We're Looking For</h3>
+                                    <p class="mb-4 italic text-gray-600">${result.lookingFor}</p>
+                                    
+                                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Diagnostic Questions</h3>
+                                    <ul class="list-disc list-inside mb-4 space-y-2">${diagnosticsHTML}</ul>
+
+                                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Assessment & Recommendation</h3>
+                                    <div class="flex items-start p-4 bg-${color}-50 border border-${color}-200 rounded-lg">
+                                        <span class="text-2xl mr-3">${icon}</span>
+                                        <div>
+                                            <p><span class="font-bold text-${color}-800">Verdict: ${result.verdict}.</span></p>
+                                            <p class="font-semibold mt-3 text-gray-800">Proposed Action:</p>
+                                            <div class="mt-1 text-gray-700">${result.recommendation}</div>
+                                            ${actionAcceptHTML}
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-6 space-y-4">
+                                        <div>
+                                            <label for="oe-comment-${result.id}" class="block text-sm font-medium text-gray-700">OE Comment</label>
+                                            <textarea id="oe-comment-${result.id}" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">${result.oeComment || ''}</textarea>
+                                        </div>
+                                        <div>
+                                            <label for="oe-action-${result.id}" class="block text-sm font-medium text-gray-700">OE Action (Modifies or replaces proposed action)</label>
+                                            <textarea id="oe-action-${result.id}" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">${result.oeAction || ''}</textarea>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    accordionContainer.innerHTML += elementHTML;
+                });
+                
+                setupAccordionListeners();
+                setupActionListeners();
+                computeAndStoreSummary(results);
+                generateAndSaveAnalysisCsv();
+            }
+
+            // --- LOCALSTORAGE & PERSISTENCE ---
+
+            function loadFromLocalStorage() {
+                const storedCsv = localStorage.getItem('maturityAssessmentCSV');
+                if (storedCsv) {
+                    try {
+                        processCsvText(storedCsv);
+                        statusMessage.textContent = 'Loaded assessment from saved data';
+                        statusMessage.className = 'text-sm font-semibold mt-2 text-green-600';
+                        fileNameDisplay.textContent = 'Loaded from previous session';
+                    } catch (err) {
+                        console.error('Failed to load stored CSV:', err);
+                        localStorage.removeItem('maturityAssessmentCSV'); // Clear corrupted data
+                    }
+                }
+            }
+
+            function saveActionData() {
+                const dataToSave = assessmentDataStore.map(r => ({
+                    id: r.id,
+                    actionAccepted: r.actionAccepted || false,
+                    oeComment: r.oeComment || '',
+                    oeAction: r.oeAction || ''
+                }));
+                localStorage.setItem('leanActionData', JSON.stringify(dataToSave));
+                generateAndSaveAnalysisCsv();
+            }
+
+            function loadActionData() {
+                const savedData = JSON.parse(localStorage.getItem('leanActionData')) || [];
+                assessmentDataStore.forEach(result => {
+                    const savedResult = savedData.find(s => s.id === result.id);
+                    if (savedResult) {
+                        result.actionAccepted = savedResult.actionAccepted;
+                        result.oeComment = savedResult.oeComment;
+                        result.oeAction = savedResult.oeAction;
+                    } else {
+                        result.actionAccepted = false;
+                        result.oeComment = '';
+                        result.oeAction = '';
+                    }
+                });
+            }
+
+            function saveAnalysisDetails() {
+                const details = {
+                    analysedBy: analysedByInput.value,
+                    analysisDate: analysisDateInput.value
+                };
+                localStorage.setItem('leanAnalysisDetails', JSON.stringify(details));
+                generateAndSaveAnalysisCsv();
+            }
+
+            function loadAnalysisDetails() {
+                const savedDetails = JSON.parse(localStorage.getItem('leanAnalysisDetails'));
+                if (savedDetails) {
+                    analysedByInput.value = savedDetails.analysedBy || '';
+                    analysisDateInput.value = savedDetails.analysisDate || '';
+                }
+            }
+
+            function resetState() {
+                if (confirm("Are you sure you want to reset all data? This will clear the saved CSV, all actions, and analysis details.")) {
+                    localStorage.removeItem('maturityAssessmentCSV');
+                    localStorage.removeItem('leanActionData');
+                    localStorage.removeItem('leanAnalysisDetails');
+                    localStorage.removeItem('leanAnalysisSummary');
+                    localStorage.removeItem('analysisResultsCSV');
+                    window.location.reload(); // Easiest way to reset the whole state
+                }
+            }
+            
+            // --- CSV PARSING UTILITIES ---
+
+            function parseCsvMetadata(rows) {
+                const metadata = {};
+                const metadataRows = rows.slice(0, 10);
+                const parseRow = (row) => (row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || []).map(v => v.trim().replace(/^"|"$/g, ''));
+                metadataRows.forEach(row => {
+                    const values = parseRow(row);
+                    for (let i = 0; i < values.length; i++) {
+                        const key = values[i]; const value = values[i + 1] || '';
+                        if (key.includes("Maturity Assessment")) metadata.projectName = value;
+                        if (key.includes("Org")) metadata.org = value;
+                        if (key.includes("Date of Assessment")) metadata.date = value;
+                        if (key.includes("Assessed By:")) metadata.assessedBy = value;
+                        if (key.includes("For OE Local PM")) metadata.localPM = value;
+                        if (key.includes("Applicable for GS Dashboard")) metadata.gsDashboard = value;
+                        if (key.includes("Scope:")) metadata.scope = value;
+                    }
+                });
+                return metadata;
+            }
+            
+            function parseCsvData(rows) {
+                let headerRowIndex = rows.findIndex(row => row.includes("Number") && row.includes("Question") && row.includes("Rating"));
+                if (headerRowIndex === -1) return [];
+                
+                const headerRow = rows[headerRowIndex].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g).map(h => h.trim().replace(/"/g, ''));
+                const numberIndex = headerRow.findIndex(h => h.includes("Number"));
+                const questionIndex = headerRow.findIndex(h => h.includes("Question"));
+                const ratingIndex = headerRow.findIndex(h => h.includes("Rating"));
+                const commentsIndex = headerRow.findIndex(h => h.includes("Comments"));
+
+                return rows.slice(headerRowIndex + 1).map(row => {
+                    const values = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g) || [];
+                    const qNum = parseInt((values[numberIndex] || '0').trim().replace(/"/g, ''));
+                    if (!qNum) return null;
+                    return {
+                        qNum: qNum,
+                        question: (values[questionIndex] || '').trim().replace(/^"|"$/g, ''),
+                        rating: parseInt((values[ratingIndex] || '0').trim().replace(/"/g, '')),
+                        comments: (values[commentsIndex] || '').trim().replace(/^"|"$/g, '')
+                    };
+                }).filter(Boolean);
+            }
+
+            // --- UI & INTERACTION HANDLERS ---
+            
+            function setupAccordionListeners() {
+                const accordionHeaders = document.querySelectorAll('#accordionContainer .accordion-header');
+                accordionHeaders.forEach(header => {
+                    header.addEventListener('click', () => {
+                        header.classList.toggle('active');
+                        header.querySelector('svg').classList.toggle('rotate-180');
+                    });
+                });
+                document.getElementById('expandAll').addEventListener('click', () => accordionHeaders.forEach(h => { h.classList.add('active'); h.querySelector('svg').classList.add('rotate-180'); }));
+                document.getElementById('collapseAll').addEventListener('click', () => accordionHeaders.forEach(h => { h.classList.remove('active'); h.querySelector('svg').classList.remove('rotate-180'); }));
+                document.querySelectorAll('.view-logic-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const resultId = e.target.dataset.resultId;
+                        const resultData = assessmentDataStore.find(r => r.id === resultId);
+                        openLogicModal(resultData);
+                    });
+                });
+            }
+
+            function setupActionListeners() {
+                assessmentDataStore.forEach(result => {
+                    const acceptCheckbox = document.getElementById(`accept-${result.id}`);
+                    if (acceptCheckbox) acceptCheckbox.addEventListener('change', (e) => { result.actionAccepted = e.target.checked; saveActionData(); });
+                    const oeCommentBox = document.getElementById(`oe-comment-${result.id}`);
+                    if (oeCommentBox) oeCommentBox.addEventListener('input', (e) => { result.oeComment = e.target.value; saveActionData(); });
+                    const oeActionBox = document.getElementById(`oe-action-${result.id}`);
+                    if (oeActionBox) oeActionBox.addEventListener('input', (e) => { result.oeAction = e.target.value; saveActionData(); });
+                });
+            }
+
+            function displayAssessmentDetails(metadata) {
+                assessmentDetailsContent.innerHTML = `<p><strong>Project/Dept:</strong> ${metadata.projectName || 'N/A'}</p><p><strong>Organization:</strong> ${metadata.org || 'N/A'}</p><p><strong>Assessment Date:</strong> ${metadata.date || 'N/A'}</p><p><strong>Assessed By:</strong> ${metadata.assessedBy || 'N/A'}</p><p><strong>For OE Local PM:</strong> ${metadata.localPM || 'N/A'}</p><p><strong>GS Dashboard:</strong> ${metadata.gsDashboard || 'N/A'}</p><p><strong>Scope:</strong> ${metadata.scope || 'N/A'}</p>`;
+            }
+
+            function computeAndStoreSummary(results) {
+                if (!results || results.length === 0) return;
+
+                const insights = results
+                    .filter(r => r.verdict !== 'Pass')
+                    .map(r => ({
+                        id: r.id,
+                        title: r.title,
+                        verdict: r.verdict
+                    }));
+
+                const recommendations = results
+                    .filter(r => r.verdict !== 'Pass')
+                    .map(r => r.recommendation.replace(/<strong>/g, '').replace(/<\/strong>/g, ''));
+
+                const summary = {
+                    insights: insights,
+                    recommendations: recommendations
+                };
+
+                localStorage.setItem('leanAnalysisSummary', JSON.stringify(summary));
+            }
+            
+            function openReportModal() {
+                if (assessmentDataStore.length === 0) {
+                    alert("Please upload and process an assessment file first.");
+                    return;
+                }
+
+                const reportContent = document.getElementById('report-content');
+                const reportHeaderPlaceholder = document.getElementById('report-header-placeholder');
+                reportContent.innerHTML = '';
+                reportHeaderPlaceholder.innerHTML = '';
+
+                const assessmentDetails = document.getElementById('assessment-details-container').cloneNode(true);
+                const analysisDetails = document.getElementById('analysis-details-container').cloneNode(true);
+                
+                analysisDetails.querySelectorAll('textarea, input').forEach(el => {
+                    const p = document.createElement('p');
+                    p.className = 'text-sm text-gray-700';
+                    p.innerHTML = `<strong>${el.previousElementSibling.textContent}:</strong> ${el.value.replace(/\n/g, ', ') || 'N/A'}`;
+                    el.parentElement.replaceWith(p);
+                });
+                
+                reportHeaderPlaceholder.appendChild(assessmentDetails);
+                reportHeaderPlaceholder.appendChild(analysisDetails);
+
+                const acceptedActions = assessmentDataStore.filter(r => r.actionAccepted || (r.oeAction && r.oeAction.trim() !== ''));
+                
+                if (acceptedActions.length === 0) {
+                    reportContent.innerHTML = '<p class="text-center text-gray-600">No actions have been accepted yet. Go through the report and accept proposed actions or add your own.</p>';
+                } else {
+                    const verdictMap = {
+                        'Opportunity for Growth': { color: 'yellow', icon: '💡' },
+                        'Foundation Focus': { color: 'red', icon: '🎯' }
+                    };
+                    
+                    let html = acceptedActions.map(action => {
+                        const { color, icon } = verdictMap[action.verdict] || { color: 'gray', icon: '❓' };
+                        const finalAction = (action.oeAction && action.oeAction.trim() !== '') ? action.oeAction : action.recommendation;
+                        
+                        return `
+                            <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                                <h3 class="text-lg font-bold text-gray-800">${action.title}</h3>
+                                <div class="flex items-start mt-2">
+                                    <span class="text-xl mr-3">${icon}</span>
+                                    <p><span class="font-semibold text-${color}-700">Verdict: ${action.verdict}</span></p>
+                                </div>
+                                <div class="mt-2 pl-8">
+                                    <p class="font-semibold text-gray-700">Action to Take:</p>
+                                    <p class="text-sm text-gray-600 pl-2 border-l-2 border-gray-300 ml-2 mt-1">${finalAction}</p>
+                                    ${action.oeComment ? `<p class="font-semibold text-gray-700 mt-2">Comment:</p><p class="text-sm text-gray-600 pl-2 border-l-2 border-gray-300 ml-2 mt-1 italic">"${action.oeComment}"</p>` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+                    reportContent.innerHTML = html;
+                }
+
+                reportModalOverlay.classList.add('visible');
+            }
+
+            function closeReportModal() { 
+                reportModalOverlay.classList.remove('visible'); 
+            }
+
+            function openLogicModal(result) {
+                if (!result) return;
+                
+                const logicContent = document.getElementById('logic-content');
+                
+                const renderConditions = (conditions) => {
+                    if (!conditions || conditions.length === 0) return '<li>None defined.</li>';
+                    return conditions.map(rule => `<li>Question <strong>#${rule.qNum}</strong> score is <strong>${rule.condition} ${rule.value}</strong></li>`).join('');
+                };
+
+                let logicHtml = `
+                    <h3 class="text-2xl font-bold text-gray-800 mb-4">Evaluation Logic for: ${result.title}</h3>
+                    <p class="mb-4 text-gray-600">This section shows the rules used to determine the verdict. The final verdict is the most foundational condition that is met.</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <h4 class="font-bold text-lg text-red-800">'Foundation Focus' Verdict Triggered If:</h4>
+                            <ul class="list-disc list-inside mt-2 text-red-700 text-sm">
+                                ${renderConditions(result.logic.highRisk)}
+                            </ul>
+                        </div>
+                        <div class="p-4 bg-yellow-50 border border-yellow-300 rounded-lg">
+                            <h4 class="font-bold text-lg text-yellow-800">'Opportunity for Growth' Verdict Triggered If:</h4>
+                            <ul class="list-disc list-inside mt-2 text-yellow-700 text-sm">
+                                ${renderConditions(result.logic.warning)}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                         <h4 class="font-bold text-lg text-green-800">'Pass' Verdict</h4>
+                         <p class="text-green-700 text-sm mt-1">If none of the 'Foundation Focus' or 'Opportunity for Growth' conditions are met, the verdict is 'Pass'.</p>
+                    </div>
+                `;
+
+                if (result.logic.special) {
+                    logicHtml += `
+                        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                            <h4 class="font-bold text-lg text-blue-800">Special Condition</h4>
+                            <p class="text-blue-700 text-sm mt-1">${result.logic.special}</p>
+                        </div>
+                    `;
+                }
+
+                logicContent.innerHTML = logicHtml;
+                logicModalOverlay.classList.add('visible');
+            }
+
+            function closeLogicModal() { 
+                logicModalOverlay.classList.remove('visible'); 
+            }
+            
+            // --- EXPORT FUNCTIONS ---
+
+            async function exportAnalysisToPptx() {
+                if (assessmentDataStore.length === 0) {
+                    alert("Please upload and process an assessment file first.");
+                    return;
+                }
+                if (typeof PptxGenJS === 'undefined') {
+                    alert('PowerPoint export library (PptxGenJS) is not available.');
+                    return;
+                }
+
+                try {
+                    const pptx = new PptxGenJS();
+                    pptx.defineLayout({ name: '16x9', width: 10, height: 5.63 });
+                    pptx.layout = '16x9';
+
+                    const addFooter = (slide) => {
+                        slide.addText(`Restricted © Siemens Energy, 2025`, { x: 0.5, y: 5.3, w: 9, h: 0.2, fontSize: 8, color: '6c757d', align: 'center' });
+                    };
+                    
+                    // Slide 1: Title
+                    let slide = pptx.addSlide();
+                    addFooter(slide);
+                    slide.background = { color: 'FFFFFF' };
+                    slide.addText('Lean Maturity Analysis & Recommendations', { x: 0.5, y: 1.5, w: 9, h: 1, fontSize: 32, bold: true, color: '4D217A' });
+                    slide.addText(assessmentMetadata.projectName || 'Analysis Report', { x: 0.5, y: 2.5, w: 9, h: 0.5, fontSize: 24, color: '54646E' });
+                    slide.addText(analysisDateInput.value || new Date().toISOString().split('T')[0], { x: 0.5, y: 3.1, w: 9, h: 0.5, fontSize: 18, color: '54646E' });
+
+
+                    // Slide 2: Purpose
+                    slide = pptx.addSlide();
+                    addFooter(slide);
+                    slide.addText('The Purpose of Using Lean Maturity Assessment', { x: 0.5, y: 0.4, w: 9, h: 0.6, fontSize: 24, bold: true, color: '4D217A' });
+                    slide.addText(
+                        "The purpose of this analysis is to leverage the Maturity Assessment to identify our current strengths and, more importantly, the critical gaps in our Lean transformation. The outcome will be a targeted, data-driven action plan to address our biggest vulnerabilities and ensure the program delivers on its strategic business objectives.", 
+                        { x: 0.5, y: 1.2, w: 9, h: 3, fontSize: 16, color: '333333' }
+                    );
+
+                    // Slide 3: Roadmap Placeholder
+                    slide = pptx.addSlide();
+                    addFooter(slide);
+                    slide.addText('Lean Transformation Roadmap', { x: 0.5, y: 0.4, w: 9, h: 0.5, fontSize: 24, bold: true, color: '4D217A', align: 'center' });
+                    slide.addText('[Insert Lean Transformation Roadmap Image Here]', { x: 0.5, y: 2.5, w: 9, h: 1, align: 'center', color: 'A9A9A9', italic: true });
+                    
+                    // Slides 4...N: Stage Details
+                    for (const result of assessmentDataStore) {
+                        slide = pptx.addSlide();
+                        addFooter(slide);
+                        
+                        // Traffic Light Indicator
+                        let verdictColor = '808080'; // Default gray for 'Pass' or others
+                        if (result.verdict === 'Foundation Focus') verdictColor = 'FF0000'; // Red
+                        if (result.verdict === 'Opportunity for Growth') verdictColor = 'FFC000'; // Yellow
+                        if (result.verdict === 'Pass') verdictColor = '00B050'; // Green
+
+                        slide.addShape(pptx.shapes.OVAL, { 
+                            x: 9.2, y: 0.4, w: 0.3, h: 0.3, 
+                            fill: { color: verdictColor } 
+                        });
+
+                        slide.addText(result.title, { x: 0.5, y: 0.4, w: 8.5, h: 0.5, fontSize: 22, bold: true, color: '4D217A' });
+                        
+                        // Box for 'Looking For' - Made smaller
+                        slide.addShape(pptx.shapes.RECTANGLE, { x: 0.5, y: 1.0, w: 9.0, h: 1.0, fill: { color: 'F8F9FA' } });
+                        slide.addText('What We Are Looking For', { x: 0.6, y: 1.05, w: 8.8, h: 0.2, fontSize: 14, bold: true, color: '007777' });
+                        slide.addText(result.lookingFor || '', { x: 0.6, y: 1.3, w: 8.8, h: 0.6, fontSize: 12, color: '333333' });
+
+                        // Box for 'Observation' - Made larger
+                        slide.addShape(pptx.shapes.RECTANGLE, { x: 0.5, y: 2.2, w: 4.4, h: 2.8, fill: { color: 'F8F9FA' } });
+                        slide.addText('Observation', { x: 0.6, y: 2.25, w: 4.2, h: 0.3, fontSize: 14, bold: true, color: '007777' });
+                        
+                        const strengths = result.diagnostics.filter(d => d.rating > 3);
+                        const gaps = result.diagnostics.filter(d => d.rating <= 3);
+                        let observationLines = [];
+                        
+                        const getSafeText = (diagnostic) => {
+                            let text = diagnostic.comments || diagnostic.question || '';
+                            text = text.replace(/<[^>]*>?/gm, ''); // Strip any HTML tags
+                            return `• ${text} (Q${diagnostic.qNum}: ${diagnostic.rating}/5)`;
+                        };
+
+                        if (strengths.length > 0) {
+                            observationLines.push({ text: 'Strengths:', options: { bold: true, breakLine: true } });
+                            strengths.forEach(d => observationLines.push({ text: getSafeText(d), options: { breakLine: true } }));
+                        }
+                        if (gaps.length > 0) {
+                            observationLines.push({ text: 'Gaps:', options: { bold: true, breakLine: true } });
+                            gaps.forEach(d => observationLines.push({ text: getSafeText(d), options: { breakLine: true } }));
+                        }
+                        if(observationLines.length > 0) {
+                            slide.addText(observationLines, { x: 0.6, y: 2.6, w: 4.2, h: 2.3, fontSize: 10, color: '333333' });
+                        }
+                        
+                        // MODIFICATION START
+                        // Box for 'Recommendation' - Made larger
+                        slide.addShape(pptx.shapes.RECTANGLE, { x: 5.1, y: 2.2, w: 4.4, h: 2.8, fill: { color: 'F8F9FA' } });
+                        slide.addText('Recommendation', { x: 5.2, y: 2.25, w: 4.2, h: 0.3, fontSize: 14, bold: true, color: '007777' });
+
+                        let recommendationLines = [];
+                        const cleanText = (text) => (text || '').replace(/<[^>]*>?/gm, ''); // Helper to strip HTML
+
+                        // 1. Accepted Recommended Actions
+                        if (result.actionAccepted && result.recommendation) {
+                            recommendationLines.push({ text: 'Accepted Action:', options: { bold: true, breakLine: true } });
+                            recommendationLines.push({ text: cleanText(result.recommendation), options: { breakLine: true, indentLevel: 1 } });
+                        }
+
+                        // 2. Additional or Alternate Actions
+                        if (result.oeAction && result.oeAction.trim() !== '') {
+                            recommendationLines.push({ text: 'Additional/Alternate Action:', options: { bold: true, breakLine: true } });
+                            recommendationLines.push({ text: cleanText(result.oeAction), options: { breakLine: true, indentLevel: 1 } });
+                        }
+
+                        // 3. Comments
+                        if (result.oeComment && result.oeComment.trim() !== '') {
+                            recommendationLines.push({ text: 'Comments:', options: { bold: true, breakLine: true } });
+                            recommendationLines.push({ text: cleanText(result.oeComment), options: { breakLine: true, indentLevel: 1 } });
+                        }
+
+                        // 4. Add the text block to the slide
+                        if (recommendationLines.length === 0) {
+                            slide.addText('No recommendation at this time', { x: 5.2, y: 2.6, w: 4.2, h: 2.3, fontSize: 12, color: '333333', italic: true });
+                        } else {
+                            slide.addText(recommendationLines, { x: 5.2, y: 2.6, w: 4.2, h: 2.3, fontSize: 11, color: '333333' });
+                        }
+                        // MODIFICATION END
+                    }
+
+                    // Generate file
+                    const orgName = (assessmentMetadata.org || 'Analysis').replace(/[^a-z0-9]/gi, '_');
+                    const date = analysisDateInput.value || new Date().toISOString().slice(0, 10);
+                    const filename = `Maturity-Analysis-Results_${orgName}_${date}.pptx`;
+                    
+                    await pptx.writeFile({ fileName: filename });
+
+                } catch (err) {
+                    console.error("Error creating PPTX:", err);
+                    alert("An error occurred while creating the PowerPoint file. Error: " + err.message);
+                }
+            }
+
+
+            function generateAndSaveAnalysisCsv() {
+                if (assessmentDataStore.length === 0) {
+                    localStorage.removeItem('analysisResultsCSV');
+                    return;
+                }
+
+                const escapeCsvCell = (cell) => {
+                    if (cell === null || cell === undefined) return '';
+                    let str = String(cell);
+                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                        str = str.replace(/"/g, '""');
+                        return `"${str}"`;
+                    }
+                    return str;
+                };
+
+                let csvContent = [];
+                
+                csvContent.push("Category,Detail");
+                csvContent.push(`Project/Dept,${escapeCsvCell(assessmentMetadata.projectName)}`);
+                csvContent.push(`Organization,${escapeCsvCell(assessmentMetadata.org)}`);
+                csvContent.push(`Assessment Date,${escapeCsvCell(assessmentMetadata.date)}`);
+                csvContent.push(`Assessed By,${escapeCsvCell(assessmentMetadata.assessedBy)}`);
+                csvContent.push(`Scope,${escapeCsvCell(assessmentMetadata.scope)}`);
+                csvContent.push(`Analysed By,${escapeCsvCell(analysedByInput.value)}`);
+                csvContent.push(`Analysis Date,${escapeCsvCell(analysisDateInput.value)}`);
+                csvContent.push(""); 
+
+                const resultsHeader = ["Stage", "Verdict", "Action Accepted", "OE Comment", "OE Action"];
+                csvContent.push(resultsHeader.join(','));
+
+                assessmentDataStore.forEach(result => {
+                    const row = [
+                        escapeCsvCell(result.title),
+                        escapeCsvCell(result.verdict),
+                        escapeCsvCell(result.actionAccepted ? 'Y' : 'N'),
+                        escapeCsvCell(result.oeComment),
+                        escapeCsvCell(result.oeAction)
+                    ];
+                    csvContent.push(row.join(','));
+                });
+
+                const csvString = csvContent.join('\n');
+                localStorage.setItem('analysisResultsCSV', csvString);
+            }
+
+            function exportResultsToCsv() {
+                generateAndSaveAnalysisCsv(); // Ensure data is current
+                const csvString = localStorage.getItem('analysisResultsCSV');
+
+                if (!csvString) {
+                    alert("Please upload and process an assessment file before exporting.");
+                    return;
+                }
+
+                const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+                const orgName = (assessmentMetadata.org || 'Analysis').replace(/[^a-z0-9]/gi, '_');
+                const date = analysisDateInput.value || new Date().toISOString().slice(0, 10);
+                const filename = `Lean-Analysis-Results_${orgName}_${date}.csv`;
+                
+                const link = document.createElement("a");
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute("href", url);
+                    link.setAttribute("download", filename);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }
+            }
+
+            function generatePdfHeader(pdf) {
+                const headerData = JSON.parse(localStorage.getItem('leanMaturityHeader') || '{}');
+                const analysisDetails = JSON.parse(localStorage.getItem('leanAnalysisDetails') || '{}');
+                
+                const projectName = headerData['assessment-name'] || 'Lean Maturity Assessment';
+                const org = headerData['org-name'] || 'N/A';
+                const date = analysisDetails['analysisDate'] || headerData['assessment-date'] || 'N/A';
+                
+                pdf.setFontSize(22);
+                pdf.setFont(undefined, 'bold');
+                pdf.text('Lean Maturity Analysis Report', pdf.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
+                
+                pdf.setFontSize(12);
+                pdf.setFont(undefined, 'normal');
+                pdf.text(`${projectName} - ${org}`, 40, 70);
+                pdf.text(`Analysis Date: ${date}`, pdf.internal.pageSize.getWidth() - 40, 70, { align: 'right' });
+                
+                pdf.setLineWidth(0.5);
+                pdf.line(40, 80, pdf.internal.pageSize.getWidth() - 40, 80);
+            }
+
+            async function exportFullReportToPdf() {
+                if (assessmentDataStore.length === 0) {
+                    alert("Please upload an assessment file first.");
+                    return;
+                }
+                
+                const pdf = new jsPDF('p', 'pt', 'a4');
+                generatePdfHeader(pdf);
+                let yPos = 100;
+                const pageHeight = pdf.internal.pageSize.height;
+                const margin = 40;
+                const contentWidth = pdf.internal.pageSize.width - (margin * 2);
+                const lineHeight = 14;
+
+                for (const result of assessmentDataStore) {
+                    const sectionHeight = 150; // A rough estimate, can be improved
+                    if (yPos + sectionHeight > pageHeight - margin) {
+                        pdf.addPage();
+                        generatePdfHeader(pdf);
+                        yPos = 100;
+                    }
+
+                    // Title and Verdict
+                    pdf.setFontSize(14);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text(result.title, margin, yPos);
+                    
+                    pdf.setFontSize(10);
+                    pdf.setFont(undefined, 'normal');
+                    pdf.text(`Verdict: ${result.verdict}`, pdf.internal.pageSize.getWidth() - margin, yPos, { align: 'right' });
+                    yPos += lineHeight * 1.5;
+
+                    // Diagnostics
+                    pdf.setFontSize(10);
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text('Diagnostic Questions:', margin, yPos);
+                    yPos += lineHeight;
+                    
+                    pdf.setFont(undefined, 'normal');
+                    result.diagnostics.forEach(d => {
+                        const diagText = `Q${d.qNum} (Score ${d.rating}/5): ${d.question}`;
+                        const diagLines = pdf.splitTextToSize(diagText, contentWidth - 10);
+                        if (yPos + (diagLines.length * lineHeight) > pageHeight - margin) {
+                             pdf.addPage();
+                             generatePdfHeader(pdf);
+                             yPos = 100;
+                        }
+                        pdf.text(diagLines, margin + 10, yPos);
+                        yPos += diagLines.length * lineHeight;
+                    });
+                    
+                    yPos += lineHeight / 2;
+                    
+                    // Recommendation
+                    const recommendation = (result.oeAction && result.oeAction.trim() !== '') ? result.oeAction : result.recommendation;
+                    const recText = `Action: ${recommendation.replace(/<[^>]*>?/gm, '')}`; // Strip HTML
+                    const recLines = pdf.splitTextToSize(recText, contentWidth);
+                    if (yPos + (recLines.length * lineHeight) > pageHeight - margin) {
+                         pdf.addPage();
+                         generatePdfHeader(pdf);
+                         yPos = 100;
+                    }
+                    pdf.setFont(undefined, 'bold');
+                    pdf.text(recLines, margin, yPos);
+                    yPos += recLines.length * lineHeight;
+
+                    pdf.setLineWidth(0.2);
+                    pdf.setDrawColor(200, 200, 200);
+                    pdf.line(margin, yPos, pdf.internal.pageSize.getWidth() - margin, yPos);
+                    yPos += lineHeight * 1.5;
+                }
+
+                const orgName = (assessmentMetadata.org || 'Analysis').replace(/[^a-z0-9]/gi, '_');
+                const date = analysisDateInput.value || new Date().toISOString().slice(0, 10);
+                const filename = `Full-Analysis-Report_${orgName}_${date}.pdf`;
+                pdf.save(filename);
+            }
+
+            async function exportActionReportToPdf() {
+                const reportContentEl = document.getElementById('report-to-export');
+                if (!reportContentEl || !reportContentEl.querySelector('#report-content') || reportContentEl.querySelector('#report-content').innerHTML.includes('No actions')) {
+                    alert("Please generate a report with accepted actions first.");
+                    return;
+                }
+
+                const loader = document.createElement('div');
+                loader.innerHTML = `<div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">Generating PDF...</div>`;
+                document.body.appendChild(loader);
+
+                try {
+                    const canvas = await html2canvas(reportContentEl, { scale: 2 });
+                    const imgData = canvas.toDataURL('image/png');
+                    const pdf = new jsPDF('p', 'pt', 'a4');
+                    const imgProps = pdf.getImageProperties(imgData);
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+                    
+                    let heightLeft = pdfHeight;
+                    let position = 0;
+                    
+                    pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                    heightLeft -= pdf.internal.pageSize.getHeight();
+
+                    while (heightLeft > 0) {
+                        position = heightLeft - pdfHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
+                        heightLeft -= pdf.internal.pageSize.getHeight();
+                    }
+                    
+                    const orgName = (assessmentMetadata.org || 'Analysis').replace(/[^a-z0-9]/gi, '_');
+                    const date = analysisDateInput.value || new Date().toISOString().slice(0, 10);
+                    const filename = `Action-Report_${orgName}_${date}.pdf`;
+                    pdf.save(filename);
+                } catch (err) {
+                    console.error("PDF generation failed:", err);
+                    alert("An error occurred while generating the PDF.");
+                } finally {
+                    document.body.removeChild(loader);
+                }
+            }
+
+        });
+    </script>
+
+    <div class="my-8 text-center">
+        <a href="voc.html" target="contentFrame" class="px-6 py-3 text-lg font-semibold rounded-lg shadow-md nav-link">
+            Next Step: Prepare for Workshop (VOC)
+        </a>
+    </div>
+
+</body>
+</html>

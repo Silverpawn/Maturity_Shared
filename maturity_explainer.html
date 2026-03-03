@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lean Transformation Journey – Maturity Explainer</title>
+    <!-- Assuming assets are in a relative folder -->
+    <!-- <link rel="stylesheet" href="assets/fonts.css"> -->
+    <!-- <link rel="stylesheet" href="assets/brand.css"> -->
+    <style>
+        /* Using Google Fonts as a fallback for Inter */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        /* Simplified Brand Colors - Kept consistent with the provided file */
+        :root {
+            --se-purple: #3d1a53;
+            --se-gray0: #f8f9fa;
+            --se-gray1: #dee2e6;
+            --se-gray2: #adb5bd;
+            --se-gray4: #495057;
+            --se-blue2: #4D96FF;
+            --se-blue3: #007bff;
+            --se-green4: #28a745;
+            --se-yellow0: #fff3cd;
+            --se-yellow3: #ffc107;
+            --hot-dark: #dc3545;
+            --cold-dark: #17a2b8;
+            --white: #ffffff;
+            --black: #212529;
+
+            --section1-colour: var(--se-yellow3);
+            --section2-colour: var(--hot-dark);
+            --section3-colour: var(--cold-dark);
+            --section4-colour: var(--se-green4);
+            --section5-colour: var(--se-gray4);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #4D217A;
+            color: var(--se-gray0);
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 2.5rem 1.25rem;
+            box-sizing: border-box;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 2px solid var(--se-blue2);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            color: var(--white);
+            font-weight: 700;
+        }
+
+        .header h2 {
+            font-size: 1.25rem;
+            font-weight: 400;
+            color: var(--se-gray2);
+            margin-bottom: 1rem;
+        }
+
+        /* Jump Navigation */
+        .jump-nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.5rem;
+            padding: 1.5rem 0;
+            margin-bottom: 1rem;
+            background-color: rgba(0,0,0,0.2);
+            border-radius: 0.75rem;
+        }
+
+        .jump-nav a {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            text-decoration: none;
+            color: var(--white);
+            font-weight: 700;
+            font-size: 1rem;
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .jump-nav a:hover {
+            transform: scale(1.1);
+        }
+        
+        .jump-nav a.nav-s1 { background-color: var(--section1-colour); }
+        .jump-nav a.nav-s2 { background-color: var(--section2-colour); }
+        .jump-nav a.nav-s3 { background-color: var(--section3-colour); }
+        .jump-nav a.nav-s4 { background-color: var(--section4-colour); }
+        .jump-nav a.nav-s5 { background-color: var(--section5-colour); }
+
+
+        .section-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            margin: 3rem 0 1.5rem 0;
+            padding-bottom: 0.75rem;
+            border-bottom-width: 3px;
+            border-bottom-style: solid;
+            text-align: left;
+        }
+
+        .section-1 .section-title { color: var(--section1-colour); border-color: var(--section1-colour); }
+        .section-2 .section-title { color: var(--section2-colour); border-color: var(--section2-colour); }
+        .section-3 .section-title { color: var(--section3-colour); border-color: var(--section3-colour); }
+        .section-4 .section-title { color: var(--section4-colour); border-color: var(--section4-colour); }
+        .section-5 .section-title { color: var(--section5-colour); border-color: var(--section5-colour); }
+
+        .flashcard-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1.5rem;
+        }
+
+        .flashcard {
+            background: var(--white);
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-top-width: 6px;
+            border-top-style: solid;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease, border-top-width 0.3s ease;
+            overflow: hidden;
+        }
+
+        .flashcard:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .flashcard.expanded {
+            border-top-width: 8px;
+        }
+
+        .section-1 .flashcard { border-color: var(--section1-colour); }
+        .section-2 .flashcard { border-color: var(--section2-colour); }
+        .section-3 .flashcard { border-color: var(--section3-colour); }
+        .section-4 .flashcard { border-color: var(--section4-colour); }
+        .section-5 .flashcard { border-color: var(--section5-colour); }
+
+        .section-1 .milestone-icon { color: var(--section1-colour); }
+        .section-2 .milestone-icon { color: var(--section2-colour); }
+        .section-3 .milestone-icon { color: var(--section3-colour); }
+        .section-4 .milestone-icon { color: var(--section4-colour); }
+        .section-5 .milestone-icon { color: var(--section5-colour); }
+
+        .card-summary {
+            display: flex;
+            align-items: flex-start;
+            gap: 1.25rem;
+            padding: 1.25rem;
+        }
+
+        .milestone-icon {
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+        }
+
+        .milestone-text h4 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+            color: var(--black);
+        }
+
+        .milestone-text .original-question {
+            font-size: 0.95rem;
+            font-style: italic;
+            color: var(--se-gray4);
+            margin: 0.25rem 0 1rem 0;
+            border-left: 3px solid var(--se-gray1);
+            padding-left: 0.75rem;
+        }
+
+        .milestone-text .concept {
+            margin: 0 0 1rem 0;
+            font-size: 1rem;
+            line-height: 1.5;
+            color: var(--se-gray4);
+        }
+
+        .milestone-text .takeaway {
+            margin: 0;
+            font-weight: 600;
+            font-style: italic;
+            color: var(--black);
+            background: var(--se-yellow0);
+            padding: 0.5rem 0.75rem;
+            border-radius: 0.5rem;
+            display: inline-block;
+            font-size: 0.9rem;
+        }
+
+        .card-details {
+            max-height: 0;
+            opacity: 0;
+            visibility: hidden;
+            transition: max-height 0.5s ease-in-out, opacity 0.4s ease-in-out, padding 0.5s ease-in-out, margin 0.5s ease-in-out;
+            padding: 0 1.25rem;
+            margin: 0;
+            line-height: 1.6;
+            color: var(--black);
+            border-top: 1px solid transparent; /* Prepare for transition */
+        }
+        
+        .flashcard.expanded .card-details {
+            visibility: visible;
+            opacity: 1;
+            max-height: 1000px;
+            padding: 1.25rem;
+            margin-top: 1rem;
+            border-top: 1px solid var(--se-gray1);
+        }
+
+        .card-details h5 {
+            font-size: 1rem;
+            color: var(--black);
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+        }
+        .card-details p {
+            margin-bottom: 1rem;
+        }
+        .card-details p:last-child {
+            margin-bottom: 0;
+        }
+
+        .navigation-buttons {
+            margin-top: 3rem;
+            text-align: center;
+        }
+        .nav-button {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 0.5rem;
+            text-decoration: none;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .nav-button:hover {
+            transform: translateY(-2px);
+        }
+        .back-button {
+             background-color: var(--se-blue3); 
+             color: var(--white); 
+             margin-right: 1rem;
+        }
+        .next-button {
+            background-color: var(--se-green4); 
+            color: var(--white);
+        }
+
+
+        @media (max-width: 900px) {
+            .flashcard-grid {
+                grid-template-columns: 1fr;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .section-title {
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>The Lean Transformation Journey</h1>
+            <h2>Click on any card to expand for more details</h2>
+        </header>
+
+        <nav class="jump-nav">
+            <a href="#question-1" class="nav-s1">1</a>
+            <a href="#question-2" class="nav-s1">2</a>
+            <a href="#question-3" class="nav-s1">3</a>
+            <a href="#question-4" class="nav-s1">4</a>
+            <a href="#question-5" class="nav-s1">5</a>
+            <a href="#question-6" class="nav-s1">6</a>
+            <a href="#question-28" class="nav-s1">28</a>
+            <a href="#question-7" class="nav-s2">7</a>
+            <a href="#question-8" class="nav-s2">8</a>
+            <a href="#question-9" class="nav-s2">9</a>
+            <a href="#question-10" class="nav-s3">10</a>
+            <a href="#question-11" class="nav-s3">11</a>
+            <a href="#question-12" class="nav-s3">12</a>
+            <a href="#question-13" class="nav-s3">13</a>
+            <a href="#question-14" class="nav-s3">14</a>
+            <a href="#question-15" class="nav-s3">15</a>
+            <a href="#question-16" class="nav-s4">16</a>
+            <a href="#question-17" class="nav-s4">17</a>
+            <a href="#question-18" class="nav-s4">18</a>
+            <a href="#question-19" class="nav-s4">19</a>
+            <a href="#question-23" class="nav-s4">23</a>
+            <a href="#question-24" class="nav-s4">24</a>
+            <a href="#question-25" class="nav-s4">25</a>
+            <a href="#question-20" class="nav-s5">20</a>
+            <a href="#question-21" class="nav-s5">21</a>
+            <a href="#question-22" class="nav-s5">22</a>
+            <a href="#question-26" class="nav-s5">26</a>
+            <a href="#question-27" class="nav-s5">27</a>
+        </nav>
+
+        <!-- SECTION 1: Foundation & Awareness -->
+        <div class="section-1">
+            <h3 class="section-title">Foundation & Awareness</h3>
+            <div class="flashcard-grid">
+                <!-- Milestone 1 -->
+                <div class="flashcard" id="question-1">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M50 90C72.0914 90 90 72.0914 90 50C90 27.9086 72.0914 10 50 10C27.9086 10 10 27.9086 10 50C10 72.0914 27.9086 90 50 90Z" stroke="currentColor" stroke-width="8"/><path d="M50 70C61.0457 70 70 61.0457 70 50C70 38.9543 61.0457 30 50 30C38.9543 30 30 38.9543 30 50C30 61.0457 38.9543 70 50 70Z" stroke="currentColor" stroke-width="8"/><path d="M50 50L50 10M50 50L50 90M50 50L10 50M50 50L90 50" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>1. Clear Business Reason</h4>
+                            <p class="original-question">Is there a clear business reason (i.e., solving a specific problem) driving this Lean Programme?</p>
+                            <p class="concept">Define your “True North” — the compelling problem you are solving.</p>
+                            <p class="takeaway">Don’t start until you can state the business problem.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>Before starting any journey, you need a destination. A Lean journey is no different. Starting Lean without a clear business reason is like setting sail without a map—you’ll be busy, but you won’t get anywhere meaningful. The business reason is your “True North.” It answers the critical question: “Why are we doing this?”</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is the very first and most critical step in the <strong>Strategic Alignment</strong> phase of the roadmap. The “Business Challenge” is not just a box to tick; it is the foundation upon which the entire transformation is built.</p>
+                    </div>
+                </div>
+                <!-- Milestone 2 -->
+                <div class="flashcard" id="question-2">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" stroke="currentColor" stroke-width="8"/><path d="M50 10V50M50 50L78.28 67.5M50 50L21.72 67.5M50 50L21.72 32.5M50 50L78.28 32.5" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>2. Leadership Commitment</h4>
+                             <p class="original-question">Is leadership committed & invested in being involved?</p>
+                            <p class="concept">The journey requires active, visible sponsorship from the very top.</p>
+                            <p class="takeaway">It starts with a genuine commitment from leadership.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>A Lean transformation is not a software upgrade or a process change you can delegate to a project team. It is a fundamental shift in the culture and operating philosophy of the entire business. Such a profound change is impossible without the active, visible and unwavering commitment of the most senior leaders.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is the designated starting point of the entire roadmap. <strong>Leadership Commitment</strong> is shown as the first foundational element because, without it, none of the subsequent phases are possible. The statement “Leadership is committed to becoming a Lean Company” is the entry ticket for the journey.</p>
+                    </div>
+                </div>
+                <!-- Milestone 3 -->
+                <div class="flashcard" id="question-3">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 85V25C15 19.4772 19.4772 15 25 15H75C80.5228 15 85 19.4772 85 25V85L50 65L15 85Z" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>3. Foundational Lean Knowledge</h4>
+                            <p class="original-question">Has the team or organisation started acquiring foundational Lean knowledge?</p>
+                            <p class="concept">Give everyone a shared language (Value, Waste, Flow).</p>
+                            <p class="takeaway">You can’t eliminate waste until you’ve taught what it is.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>In a Lean transformation, the “tools” are concepts like Value, Waste, Flow, Pull and Continuous Improvement. Foundational knowledge ensures everyone understands these core ideas and can speak the same language. It’s not about making everyone an expert overnight; it’s about giving them the basic literacy to see their own work differently.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>Acquiring this knowledge is the first key activity within the <strong>Communication &amp; Training</strong> workstream. The initial phase, “Train Steering Committee &amp; Lean Experts,” ensures that the leaders and change agents have this knowledge first so they can effectively lead the transformation.</p>
+                    </div>
+                </div>
+                <!-- Milestone 4 -->
+                <div class="flashcard" id="question-4">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                            <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="40" width="30" height="20" rx="10" stroke="currentColor" stroke-width="8"/><rect x="55" y="40" width="30" height="20" rx="10" stroke="currentColor" stroke-width="8"/><path d="M45 50H55" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>4. Team Understanding of Goals</h4>
+                            <p class="original-question">How clearly can your team describe what Lean means and how it supports your business goals?</p>
+                            <p class="concept">Bridge the gap between “what” Lean is and “why” it matters to the business.</p>
+                            <p class="takeaway">Teach them how the tools help win the game.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>Foundational knowledge teaches a team “what” Lean is. But to truly engage them, they must also understand “why” it matters to them and to the business. This clarity provides context and motivation. It empowers the team to make their own decisions about how to apply Lean principles, because they understand the ultimate goal they are trying to achieve.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is a crucial outcome of both the <strong>Strategic Alignment</strong> and <strong>Communication &amp; Training</strong> phases. When the business challenge is clear and training is effective, teams can directly connect their daily improvement activities to the organization's most important goals.</p>
+                    </div>
+                </div>
+                <!-- Milestone 5 -->
+                <div class="flashcard" id="question-5">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 30H80V70H20V30Z" stroke="currentColor" stroke-width="8"/><path d="M20 30L50 50L80 30" stroke="currentColor" stroke-width="8"/><path d="M20 70L50 50L80 70" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>5. Understanding Lean Concepts</h4>
+                             <p class="original-question">How well does the team understand Lean concepts?</p>
+                            <p class="concept">Move from buzzwords to a practical grasp of core principles.</p>
+                            <p class="takeaway">Deep understanding is the key that unlocks real improvement.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>It's one thing to know the names of Lean tools; it's another to deeply understand the principles behind them. This deeper understanding allows teams to go beyond simply "doing" Lean activities and start "thinking" in a Lean way. It enables them to correctly diagnose problems and select the right approach, rather than just applying tools randomly.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is the primary goal of the "Train Steering Committee & Lean Experts" and subsequent training activities in the <strong>Communication & Training</strong> phase. The aim is not just awareness, but a robust understanding that allows for effective leadership and problem-solving.</p>
+                    </div>
+                </div>
+                <!-- Milestone 6 -->
+                <div class="flashcard" id="question-6">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" stroke="currentColor" stroke-width="8"/><path d="M30 50H70" stroke="currentColor" stroke-width="8"/><path d="M50 30V70" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>6. Consistent & Ongoing Training</h4>
+                             <p class="original-question">How consistently do team members receive Lean training, and is there a plan for ongoing learning?</p>
+                            <p class="concept">Treat learning as a continuous process, not a one-time event.</p>
+                            <p class="takeaway">Build capability through consistent practice and learning.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>A single training session can create initial excitement, but skills and knowledge fade without reinforcement. A plan for ongoing learning ensures that Lean concepts stay fresh, new skills are developed, and the organization's overall capability grows over time. It signals that Lean is not just a temporary project, but a permanent new way of working.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is a core principle of the entire <strong>Communication & Training</strong> workstream. It's not just about the initial training, but about establishing a long-term plan for development that supports the <strong>Continuous Improvement Cycle</strong>.</p>
+                    </div>
+                </div>
+                <!-- Milestone 28 -->
+                <div class="flashcard" id="question-28">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M50 70V20L30 30V50L50 40" stroke="currentColor" stroke-width="8"/><path d="M50 70H30V90H70V70H50Z" stroke="currentColor" stroke-width="8"/><path d="M20 35H10M20 45H10M20 55H10M80 35H90M80 45H90M80 55H90" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>28. Sharing Lean Success Stories</h4>
+                            <p class="original-question">How consistently are Lean success stories shared to inspire and align the wider business?</p>
+                            <p class="concept">Use stories as "lighthouses" to inspire, teach, and build momentum.</p>
+                            <p class="takeaway">Data convinces the mind, but a good story wins the heart.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>A Lean transformation can be a long and challenging journey. Sharing success stories is crucial for maintaining energy and momentum. These stories—of a team that dramatically reduced lead time, or an individual who eliminated a frustrating source of waste—serve multiple purposes. They provide tangible proof that the methods work, they teach others what is possible, and they celebrate the people involved, reinforcing the desired behaviours and inspiring others to join the effort.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>Sharing success stories is a key part of the <strong>Communication & Training</strong> workstream. It is also an essential leadership responsibility that supports the overall <strong>Leadership Commitment</strong>, as leaders can use these stories to reinforce the "why" behind the transformation and celebrate progress towards the vision.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: Strategy & Structure -->
+        <div class="section-2">
+            <h3 class="section-title">Strategy & Structure</h3>
+            <div class="flashcard-grid">
+                <!-- Milestone 7 -->
+                <div class="flashcard" id="question-7">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 50H85M15 50L35 30M15 50L35 70" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>7. Defined Lean Structure & Roles</h4>
+                            <p class="original-question">Is there a defined Lean structure or role ownership?</p>
+                            <p class="concept">Create clear ownership and a support system for the transformation.</p>
+                            <p class="takeaway">Good intentions need a structure to become reality.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>A Lean transformation cannot be a side job for everyone. To ensure focus and accountability, you need a defined structure. This usually involves establishing a steering committee for high-level guidance, appointing value stream owners who are responsible for end-to-end processes, and identifying Lean experts who can coach and support the teams. This structure provides the engine to drive the transformation forward.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is the central focus of the <strong>Organizational Structure</strong> phase of the roadmap. The explicit goal is to "Establish Steering Committee, Value Stream Owners & Lean Experts" to provide the necessary leadership and support system for the entire journey.</p>
+                    </div>
+                </div>
+                <!-- Milestone 8 -->
+                <div class="flashcard" id="question-8">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M65 15H35C28.3726 15 23 20.3726 23 27V73C23 79.6274 28.3726 85 35 85H65C71.6274 85 77 79.6274 77 73V27C77 20.3726 71.6274 15 65 15Z" stroke="currentColor" stroke-width="8"/><path d="M23 50H77" stroke="currentColor" stroke-width="8"/><path d="M50 23V77" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>8. Strategy Management System</h4>
+                            <p class="original-question">Is a strategy management system in place and regularly reviewed?</p>
+                            <p class="concept">Systematically deploy, track, and adapt your strategic goals.</p>
+                            <p class="takeaway">A good strategy needs a system to bring it to life.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>Having a strategy is not enough; you need a system to manage it. A strategy management system (like Hoshin Kanri) is a structured process for ensuring that the high-level strategic goals of the organization are translated into concrete actions and metrics at every level. It involves a regular cycle of planning, deploying, reviewing, and adapting the strategy, ensuring that the entire organization remains aligned and focused on the most important goals.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is a key component of the <strong>Governance & Review Cadence</strong>. The system of "Monthly Steering Meetings" and "Quarterly Strategy Reviews" is the practical application of a strategy management system, ensuring that the Lean transformation stays on track and aligned with the business's True North.</p>
+                    </div>
+                </div>
+                <!-- Milestone 9 -->
+                <div class="flashcard" id="question-9">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M30 30H70V70H30V30Z" stroke="currentColor" stroke-width="8"/><path d="M50 30V70" stroke="currentColor" stroke-width="8"/><path d="M30 50H70" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>9. Cascading Strategic Objectives</h4>
+                            <p class="original-question">How well are strategic objectives cascaded to teams?</p>
+                            <p class="concept">Ensure every team knows how their work contributes to the bigger picture.</p>
+                            <p class="takeaway">Alignment happens when strategy is translated, not just broadcast.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>Cascading objectives is the process of breaking down high-level strategic goals into meaningful, actionable objectives for each team and individual. It's not just about telling people what the company goals are; it's about helping them see the direct line of sight between their daily work and the achievement of those goals. This creates powerful alignment and empowers teams to make decisions that support the overall strategy.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is a direct outcome of a well-run <strong>Governance & Review Cadence</strong> and an effective <strong>Value Stream Workshop</strong>. The workshop helps define team-level objectives, and the review cadence ensures they stay aligned with the high-level "Challenge KPI" over time.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: Tools & Daily Management -->
+        <div class="section-3">
+            <h3 class="section-title">Tools & Daily Management</h3>
+            <div class="flashcard-grid">
+                 <!-- Milestone 10 -->
+                <div class="flashcard" id="question-10">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="40" stroke="currentColor" stroke-width="8"/><path d="M30 50L50 30L70 50L50 70L30 50Z" stroke="currentColor" stroke-width="8"/><path d="M50 30V70" stroke="currentColor" stroke-width="8"/><path d="M30 50H70" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>10. Experimenting with Lean Tools</h4>
+                            <p class="original-question">Has the team experimented with any Lean tools on a small scale or in a pilot project?</p>
+                            <p class="concept">Start applying the theory in a small, controlled way.</p>
+                            <p class="takeaway">Learning starts when the tools leave the classroom.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>Lean knowledge is best gained through application. Experimenting with tools on a small scale (e.g., trying a 5S exercise in one work cell, or using a Kanban board for a single process) is a low-risk way to build practical skills and confidence. These initial trials provide immediate feedback and help the team learn how the tools work in their specific environment, turning abstract concepts into tangible experience.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is the very essence of the <strong>Pilot Area Transformation</strong>. The pilot is designed as a safe space to experiment with tools like "Daily Huddles" and "Problem Solving" for the first time before attempting a wider rollout.</p>
+                    </div>
+                </div>
+                 <!-- Milestone 11 -->
+                <div class="flashcard" id="question-11">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 20H80V80H20V20Z" stroke="currentColor" stroke-width="8"/><path d="M20 20L50 50L80 20" stroke="currentColor" stroke-width="8"/><path d="M20 80L50 50L80 80" stroke="currentColor" stroke-width="8"/><path d="M20 50H80" stroke="currentColor" stroke-width="8"/><path d="M50 20V80" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>11. Embedding Tools in Daily Work</h4>
+                            <p class="original-question">How embedded and routinely applied are Lean tools in your team's daily work?</p>
+                            <p class="concept">Move from occasional use to making Lean tools "the way we work."</p>
+                            <p class="takeaway">Tools become powerful when they become habits.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>The goal is to move beyond using Lean tools as a special "event" and integrate them into the team's daily routine. For example, a daily huddle isn't a special meeting; it's the standard way the team starts its day. A Kanban board isn't a project tool; it's the standard way the team manages its workflow. When tools become embedded habits, continuous improvement becomes a natural, automatic part of the daily work.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is a key outcome of a successful <strong>Pilot Area Transformation</strong>. The aim is to make practices like "Daily Huddles" and "Problem Solving" routine within that area, creating a model of embedded Lean that can then be replicated during the <strong>Expansion & Integration</strong> phase.</p>
+                    </div>
+                </div>
+                 <!-- Milestone 12 -->
+                <div class="flashcard" id="question-12">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M50 10L61.8034 38.1966H91.6506L67.4236 61.6068L78.6186 90.8034L50 71.2137L21.3814 90.8034L32.5764 61.6068L8.3494 38.1966H38.1966L50 10Z" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>12. Tracking & Discussing KPIs</h4>
+                            <p class="original-question">Are Lean-related KPIs tracked and discussed in teams?</p>
+                            <p class="concept">Use data to make problems visible and drive conversation.</p>
+                            <p class="takeaway">What gets measured and discussed, gets improved.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>Key Performance Indicators (KPIs) are the vital signs of a process. Tracking them regularly is essential, but the real value comes from discussing them as a team. These discussions, often held at a visual management board, allow the team to see trends, identify when the process is off-track, and trigger a structured problem-solving approach. It shifts the conversation from being based on opinions to being based on facts.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is a core activity in both the <strong>Pilot Area Transformation</strong> (through "KPI, Problem Solving") and the overarching <strong>Governance & Review Cadence</strong> (through "Track Challenge KPI"). It provides the data-driven feedback loop that is essential for continuous improvement.</p>
+                    </div>
+                </div>
+                 <!-- Milestone 13 -->
+                <div class="flashcard" id="question-13">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M50 90C72.0914 90 90 72.0914 90 50C90 27.9086 72.0914 10 50 10C27.9086 10 10 27.9086 10 50C10 72.0914 27.9086 90 50 90Z" stroke="currentColor" stroke-width="8"/><path d="M34.5584 50.4312L45.9193 62.4149C46.3037 62.8246 46.9239 62.8246 47.3082 62.4149L66.4726 42.1635" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>13. Aligning KPIs to Lean Goals</h4>
+                            <p class="original-question">Are KPIs clearly aligned to Lean goals (flow, quality, waste)?</p>
+                            <p class="concept">Measure what matters: the flow of value, not just functional silos.</p>
+                            <p class="takeaway">The wrong KPIs will drive the wrong behaviours, no matter how good your training is.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>Many traditional KPIs measure efficiency within a single department (e.g., machine utilization). While these can be useful, they often encourage behaviours that are bad for the overall system (e.g., building inventory just to keep a machine busy). Aligning KPIs to Lean goals means shifting the focus to measuring things that matter to the customer, such as lead time (flow), first-pass yield (quality), and overall waste reduction. This ensures that improvement efforts are focused on optimizing the whole value stream, not just the individual pieces.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This alignment is a key objective of the <strong>Value Stream Workshop & Planning</strong> phase. During this workshop, teams analyze the current state and define future state goals that are directly tied to improving flow and quality for the customer. These goals then inform the KPIs that are tracked in the pilot and beyond.</p>
+                    </div>
+                </div>
+                <!-- Milestone 14 -->
+                <div class="flashcard" id="question-14">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M50 10L61.8034 38.1966H91.6506L67.4236 61.6068L78.6186 90.8034L50 71.2137L21.3814 90.8034L32.5764 61.6068L8.3494 38.1966H38.1966L50 10Z" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>14. Using Daily Huddles</h4>
+                            <p class="original-question">Are daily huddles used consistently to raise and resolve issues?</p>
+                            <p class="concept">Create a consistent, daily rhythm for communication and problem-solving.</p>
+                            <p class="takeaway">A daily 15-minute huddle saves hours of firefighting later.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>A daily huddle (or stand-up meeting) is a short, structured meeting where the team reviews performance against the plan, identifies any immediate problems or roadblocks, and coordinates their work for the day. It is a powerful mechanism for creating transparency, fostering team communication, and enabling rapid, real-time problem-solving. It prevents small issues from escalating into major crises and establishes a daily cadence of continuous improvement.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>Daily Huddles are explicitly called out as a key practice to be implemented during the <strong>Pilot Area Transformation</strong>. They are the cornerstone of a Lean daily management system and are essential for driving the "Problem Solving" and "KPI" tracking activities at the team level.</p>
+                    </div>
+                </div>
+                <!-- Milestone 15 -->
+                <div class="flashcard" id="question-15">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M50 10C39.5066 10 29.4282 13.6596 21.45 20.45L50 50L78.55 20.45C70.5718 13.6596 60.4934 10 50 10Z" stroke="currentColor" stroke-width="8"/><path d="M78.55 20.45C85.3404 28.4282 89 38.5066 89 49C89 59.4934 85.3404 69.5718 78.55 77.55C71.5718 85.3404 61.4934 89 51 89C40.5066 89 30.4282 85.3404 22.45 78.55C15.6596 70.5718 12 60.4934 12 50" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>15. Employee-Driven Improvements</h4>
+                            <p class="original-question">How often do employees suggest and act on improvements?</p>
+                            <p class="concept">Tap into the expertise of those closest to the work.</p>
+                            <p class="takeaway">The person doing the job knows more about it than anyone else.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>This is the heart of Kaizen (continuous improvement). It's the belief that the people who perform the work are the true experts and are in the best position to identify problems and develop effective solutions. A culture of employee-driven improvement is one where everyone is not only empowered but expected to suggest and implement improvements as part of their daily job. This unleashes a tremendous amount of creative problem-solving potential throughout the organization.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This culture is the goal of the <strong>Continuous Improvement Cycle</strong>. The cycle of "Identify Next Problems, Implement Solutions, Evolve the system" is not meant to be driven by managers alone, but by the entire workforce. The "Problem Solving" activities in the <strong>Pilot Area Transformation</strong> are designed to build this capability from the ground up.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- SECTION 4: Learning & Scaling -->
+        <div class="section-4">
+            <h3 class="section-title">Learning & Scaling</h3>
+            <div class="flashcard-grid">
+                <!-- Milestone 16 -->
+                <div class="flashcard" id="question-16">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M30 50L50 30L70 50L50 70L30 50Z" stroke="currentColor" stroke-width="8"/><circle cx="50" cy="50" r="40" stroke="currentColor" stroke-width="8"/><path d="M50 10V90" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>16. Reflecting on Improvements</h4>
+                            <p class="original-question">After an improvement is made, does the team reflect on the outcome to refine the process they just changed?</p>
+                            <p class="concept">Systematically learn from every change you make.</p>
+                            <p class="takeaway">Activity without reflection is just busy-ness.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>After an improvement is implemented, it's crucial to pause and reflect. This process, often called "Hansei" in Japanese, involves asking questions like: "Did the change have the effect we expected? Why or why not? What did we learn from this process?" This structured reflection turns every improvement action, whether it succeeded or failed, into a valuable learning opportunity. It prevents teams from repeating mistakes and helps them develop a deeper understanding of their processes.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>Reflection is a key part of the "Evolve the system" step in the <strong>Continuous Improvement Cycle</strong>. It's also an implicit part of the "Problem Solving" process within the <strong>Pilot Area Transformation</strong>. Effective reflection ensures that the learnings from one improvement cycle are fed into the next.</p>
+                    </div>
+                </div>
+                <!-- Milestone 17 -->
+                <div class="flashcard" id="question-17">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M25 80C25 70 30 60 40 60H60C70 60 75 70 75 80" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><path d="M40 45L30 20H70L60 45" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>17. Capturing & Sharing Learnings</h4>
+                            <p class="original-question">How effectively does the organisation capture and share learnings from one team's improvements so that other teams can benefit?</p>
+                            <p class="concept">Turn isolated knowledge into collective intelligence.</p>
+                            <p class="takeaway">Solve a problem once, then share the learning to solve it everywhere.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>When one team solves a difficult problem, that new knowledge is a valuable asset. If it stays with that team, its value is limited. Capturing and sharing learnings means having a systematic way to document what was learned from an improvement activity and disseminate it to other teams who could benefit. This prevents teams from "reinventing the wheel" and accelerates the pace of improvement across the entire organization.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is a critical enabler for the <strong>Expansion & Integration</strong> phase. The ability to effectively share learnings from the pilot area is what allows the transformation to scale successfully. It is also a key output of the <strong>Continuous Improvement Cycle's</strong> "Evolve the system" step.</p>
+                    </div>
+                </div>
+                 <!-- Milestone 18 -->
+                <div class="flashcard" id="question-18">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="30" r="10" stroke="currentColor" stroke-width="8"/><path d="M50 40V60C50 65 45 70 40 70H30" stroke="currentColor" stroke-width="8"/><path d="M30 70C30 80 40 85 50 85C60 85 70 80 70 70" stroke="currentColor" stroke-width="8"/><path d="M50 85V95" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>18. Extending Lean to the Value Chain</h4>
+                            <p class="original-question">Does your Lean philosophy extend across your entire value chain?</p>
+                            <p class="concept">See partners as extensions of your own factory.</p>
+                            <p class="takeaway">Your value stream doesn't end at your shipping dock.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>Optimizing your own internal processes is only part of the picture. The total time, cost, and quality experienced by the end customer is determined by the entire value chain, including your suppliers and distributors. Extending Lean means collaborating with these external partners to identify and eliminate waste across organizational boundaries, creating a more efficient and responsive end-to-end system.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This represents an advanced stage of maturity in the <strong>Expansion & Integration</strong> phase. It involves applying the principles of the <strong>Value Stream Workshop</strong> not just internally, but to the entire flow of value from raw material to the end customer.</p>
+                    </div>
+                </div>
+                <!-- Milestone 19 -->
+                <div class="flashcard" id="question-19">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M50 10L15 30V70L50 90L85 70V30L50 10Z" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/><path d="M50 50L30 40V60L50 70L70 60V40L50 50Z" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>19. Integrating Lean Across Departments</h4>
+                            <p class="original-question">To what extent are Lean practices integrated across departments and partners?</p>
+                            <p class="concept">Break down silos to improve the horizontal flow of value.</p>
+                            <p class="takeaway">Don't just improve the silos; improve the flow that connects them.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>Often, the biggest sources of waste and delay in an organization are not within the departments, but in the handoffs between them. Integrating Lean across departments means shifting the focus from optimizing individual functions (vertical silos) to optimizing the end‑to‑end flow of value to the customer (horizontal value streams). This requires cross‑functional collaboration and a shared understanding of the overall process.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is the core purpose of the <strong>Expansion & Integration</strong> phase. The goal is to move beyond the pilot area and "Gradually expand Lean Practices to interface areas," breaking down the barriers between functions to improve the overall system.</p>
+                    </div>
+                </div>
+                <!-- Milestone 23 -->
+                <div class="flashcard" id="question-23">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="15" y="25" width="70" height="50" rx="8" stroke="currentColor" stroke-width="8"/><circle cx="35" cy="50" r="5" fill="currentColor"/><circle cx="65" cy="50" r="5" fill="currentColor"/><path d="M40 50H60" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>23. Routine of Reflection & Sharing</h4>
+                            <p class="original-question">How ingrained is the routine for your team to both reflect on improvements and actively share the results?</p>
+                            <p class="concept">Make reflection and sharing an ingrained, non‑negotiable habit.</p>
+                            <p class="takeaway">Reflection turns experience into wisdom; sharing makes it capability.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>This is the cultural maturity that combines two previous concepts (Reflection and Sharing) into a single, ingrained routine. It's the point where teams don't need to be reminded to reflect on their work and share what they've learned; it's simply part of their standard work. This routine ensures that learning is continuous and that the organization's collective knowledge is always growing.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This habit is the engine that drives the <strong>Continuous Improvement Cycle</strong>. A strong routine of reflection and sharing ensures that the cycle is not just a theoretical loop on a diagram, but a living, breathing process that continuously improves and evolves the system.</p>
+                    </div>
+                </div>
+                <!-- Milestone 24 -->
+                <div class="flashcard" id="question-24">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 70L35 40H65L80 70H20Z" stroke="currentColor" stroke-width="8"/><circle cx="30" cy="70" r="10" stroke="currentColor" stroke-width="8"/><circle cx="70" cy="70" r="10" stroke="currentColor" stroke-width="8"/><path d="M40 20H60" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>24. Using Pilot Projects</h4>
+                            <p class="original-question">How often are pilot projects used to test, learn, and adapt Lean improvements?</p>
+                            <p class="concept">Use a pilot as a "test track" to learn, adapt, and reduce risk.</p>
+                            <p class="takeaway">Pilots are for learning, not just for implementing.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>A pilot project is a controlled experiment. Its primary purpose is not just to "install" a new process, but to learn. It provides a safe environment to test a new concept, understand its real‑world challenges, adapt the approach based on feedback, and build the capability of the team before attempting a broader, more expensive rollout. Approaching a pilot with a learning mindset is crucial for success.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>The <strong>Pilot Area Transformation</strong> is the formal application of this concept. It is designed as the organization's first major "test track" for applying Lean principles and tools in a holistic way, with the explicit goal of generating learnings to inform the later <strong>Expansion & Integration</strong> phase.</p>
+                    </div>
+                </div>
+                <!-- Milestone 25 -->
+                <div class="flashcard" id="question-25">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M30 70V30C30 20 40 15 50 15C60 15 70 20 70 30V40" stroke="currentColor" stroke-width="8"/><circle cx="50" cy="55" r="5" stroke="currentColor" stroke-width="8"/><path d="M50 60V80M40 85H60" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>25. Spreading Successful Practices</h4>
+                            <p class="original-question">How effectively are successful Lean practices spread across teams or departments?</p>
+                            <p class="concept">Take a local success and make it a new company standard.</p>
+                            <p class="takeaway">A great idea, standardized and spread, transforms an organization.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>When a pilot project proves a new practice is effective, the next step is to spread that success. This requires a deliberate process. It involves standardizing the successful practice to make it repeatable, and then actively teaching, coaching, and supporting other teams as they adopt it. This is how an organization takes a single "point of light" from a successful pilot and uses it to illuminate the entire company.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is the definition of the <strong>Expansion & Integration</strong> phase. The entire purpose of this phase is to take the successful practices developed in the pilot and "Gradually expand" them to other areas, turning a local improvement into a new organizational capability.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 5: Leadership & Collaboration -->
+        <div class="section-5">
+            <h3 class="section-title">Leadership & Collaboration</h3>
+            <div class="flashcard-grid">
+                <!-- Milestone 20 -->
+                <div class="flashcard" id="question-20">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M25 80C25 70 30 60 40 60H60C70 60 75 70 75 80" stroke="currentColor" stroke-width="8" stroke-linecap="round"/><path d="M40 45L30 20H70L60 45" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>20. Leader Presence & Engagement</h4>
+                            <p class="original-question">How present and engaged are leaders in supporting Lean efforts at the workplace?</p>
+                            <p class="concept">Go to the "Gemba" (the actual place) to see, learn, and support.</p>
+                            <p class="takeaway">Leaders who lead from the front show that improvement is a priority.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>In Lean, leadership is not about managing from behind a desk or through spreadsheets. It's about being physically present where the work happens (the "Gemba"). This practice allows leaders to observe the real process, understand the real problems, ask insightful questions, and show respect and support for the people doing the work. Visible engagement from leaders is one of the most powerful ways to reinforce that continuous improvement is a core value of the organization.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This directly supports the foundational principle of <strong>Leadership Commitment</strong>. It is the practical, daily behaviour that brings that commitment to life. It is also essential for effective <strong>Governance & Review</strong>, as it provides leaders with first‑hand knowledge to guide their strategic decisions.</p>
+                    </div>
+                </div>
+                <!-- Milestone 21 -->
+                <div class="flashcard" id="question-21">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="30" r="10" stroke="currentColor" stroke-width="8"/><path d="M50 40V60C50 65 45 70 40 70H30" stroke="currentColor" stroke-width="8"/><path d="M30 70C30 80 40 85 50 85C60 85 70 80 70 70" stroke="currentColor" stroke-width="8"/><path d="M50 85V95" stroke="currentColor" stroke-width="8" stroke-linecap="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>21. Coaching with Lean Questions</h4>
+                            <p class="original-question">How often do leaders coach and guide teams by asking Lean-focused questions?</p>
+                            <p class="concept">Shift from giving answers to building problem‑solvers by asking questions.</p>
+                            <p class="takeaway">A good leader provides answers; a great Lean leader asks questions.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>A traditional manager often acts as the primary problem‑solver, telling their team what to do. A Lean leader acts as a coach, developing the problem‑solving capabilities of their team. They do this by asking guiding questions ("What problem are we trying to solve? What have we tried so far? What did we learn?") rather than providing immediate answers. This Socratic approach builds critical thinking skills and ownership at all levels of the organization.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is the key leadership skill required to make the <strong>Continuous Improvement Cycle</strong> and the "Problem Solving" in the <strong>Pilot Area Transformation</strong> successful. It is how leaders actively participate in and enable the improvement process without taking it over.</p>
+                    </div>
+                </div>
+                <!-- Milestone 22 -->
+                <div class="flashcard" id="question-22">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M50 10L15 30V70L50 90L85 70V30L50 10Z" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/><path d="M50 50L30 40V60L50 70L70 60V40L50 50Z" stroke="currentColor" stroke-width="8" stroke-linejoin="round"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>22. Culture of Safe Experimentation</h4>
+                            <p class="original-question">To what extent does our organization combine a psychologically safe culture with a structured process to drive effective experimentation?</p>
+                            <p class="concept">Combine psychological safety with a structured process (PDCA).</p>
+                            <p class="takeaway">Innovation happens with a safe space to fail and a process to learn.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>Continuous improvement is, by its nature, a process of experimentation. Not every experiment will succeed. A culture of safe experimentation requires two things: 1) Psychological safety, where people feel secure enough to propose new ideas and try things without fear of blame if an experiment "fails." 2) A structured process (like PDCA) that ensures every experiment, successful or not, generates valuable learning. These two elements create a powerful engine for innovation and resilience.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This culture is the soil in which the <strong>Continuous Improvement Cycle</strong> grows. It is also fundamental to the <strong>Pilot Area Transformation</strong>, which is itself a large‑scale, safe experiment. It requires both <strong>Leadership Commitment</strong> to foster safety and <strong>Communication & Training</strong> to teach the structured process.</p>
+                    </div>
+                </div>
+                <!-- Milestone 26 -->
+                <div class="flashcard" id="question-26">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="25" cy="30" r="10" stroke="currentColor" stroke-width="8"/><path d="M25 40V70H35" stroke="currentColor" stroke-width="8"/><circle cx="75" cy="30" r="10" stroke="currentColor" stroke-width="8"/><path d="M75 40V70H65" stroke="currentColor" stroke-width="8"/><path d="M35 60H50L65 50" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>26. Cross‑Functional Collaboration</h4>
+                            <p class="original-question">How well do teams from different functions collaborate to improve shared processes?</p>
+                            <p class="concept">The race is won or lost in the quality of the handoffs between teams.</p>
+                            <p class="takeaway">Don't coach the runners; coach the handoffs.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>Value is created horizontally across an organization, flowing through multiple teams and departments on its way to the customer. Cross‑functional collaboration is the practice of bringing people from these different departments together to work on improving that entire flow. It requires breaking down departmental silos and fostering a shared sense of ownership for the end‑to‑end process.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This is a key enabler for the <strong>Value Stream Workshop</strong>, which by nature is a cross‑functional event. It is also the primary behaviour that needs to be fostered during the <strong>Expansion & Integration</strong> phase to ensure that improvements are made to the whole system, not just within isolated areas.</p>
+                    </div>
+                </div>
+                <!-- Milestone 27 -->
+                <div class="flashcard" id="question-27">
+                    <div class="card-summary">
+                        <div class="milestone-icon">
+                           <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 50C20 40 30 30 40 30H60C70 30 80 40 80 50V70H20V50Z" stroke="currentColor" stroke-width="8"/><path d="M40 70V80C40 85 45 90 50 90C55 90 60 85 60 80V70" stroke="currentColor" stroke-width="8"/><path d="M40 50C45 50 45 40 50 40C55 40 55 50 60 50" stroke="currentColor" stroke-width="8"/></svg>
+                        </div>
+                        <div class="milestone-text">
+                            <h4>27. Joint Improvement with Partners</h4>
+                            <p class="original-question">How actively do you execute joint improvement projects with external partners?</p>
+                            <p class="concept">Move from negotiation to active, collaborative problem‑solving.</p>
+                            <p class="takeaway">Improve together to win together.</p>
+                        </div>
+                    </div>
+                    <div class="card-details">
+                        <h5>The Big Picture: Teaching the Concept</h5>
+                        <p>This is the next level of maturity beyond basic collaboration. It means moving from a traditional, often adversarial, customer‑supplier relationship to a true partnership focused on mutual benefit. It involves actively working together on joint improvement projects, sharing information transparently, and co‑solving problems that exist in the interfaces between the organizations. The goal is to optimize the entire value chain for the benefit of all parties.</p>
+                        <h5>Connecting to the Lean Roadmap</h5>
+                        <p>This represents the most advanced form of <strong>Expansion & Integration</strong>, where the scope of improvement extends beyond the company's own walls. It requires a very mature <strong>Continuous Improvement Cycle</strong> and strong <strong>Leadership Commitment</strong> to build the necessary trust with external partners.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="navigation-buttons">
+            <a href="maturity.html" onclick="parent.navigateTo('maturity.html'); return false;" class="nav-button back-button">
+                Back to Assessment
+            </a>
+            <a href="analysis.html" onclick="parent.navigateTo('analysis.html'); return false;" class="nav-button next-button">
+                Next Step: Analyse
+            </a>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const flashcards = document.querySelectorAll('.flashcard');
+            flashcards.forEach(card => {
+                card.addEventListener('click', function () {
+                    // Optional: Close other cards when one is opened
+                    // flashcards.forEach(otherCard => {
+                    //     if (otherCard !== this) {
+                    //         otherCard.classList.remove('expanded');
+                    //     }
+                    // });
+                    this.classList.toggle('expanded');
+                });
+            });
+        });
+    </script>
+</body>
+</html>
+

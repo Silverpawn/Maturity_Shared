@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lean Transformation Metro Map - Digital Twin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&family=Roboto:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f8fafc;
+            overflow-x: hidden;
+        }
+
+        h1,
+        h2,
+        h3,
+        .font-condensed {
+            font-family: 'Roboto Condensed', sans-serif;
+        }
+
+        /* Map Container */
+        .metro-container {
+            position: relative;
+            width: 100%;
+            height: 3200px;
+            overflow: hidden;
+            background-color: #f1f5f9;
+        }
+
+        /* Background Layer */
+        .metro-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('Maturity.jpg');
+            background-size: 100% auto;
+            background-repeat: no-repeat;
+            opacity: 0.2;
+            z-index: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        /* SVG Tracks */
+        .track-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        /* Stations */
+        .stations-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+        }
+
+        /* Node Styling - Default NEUTRAL (White) */
+        .station-node {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background-color: #ffffff;
+            color: #1e293b;
+            border: 4px solid;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+            transition: transform 0.2s, opacity 0.3s;
+            cursor: pointer;
+            z-index: 5;
+        }
+
+        /* Start Node Styling */
+        .start-node {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            padding: 8px 16px;
+            background-color: #1e293b;
+            /* Slate 800 */
+            color: white;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            z-index: 5;
+            border: 2px solid #ffffff;
+        }
+
+        /* Gold Fill for Gateways */
+        .station-node.node-gold {
+            background-color: #FFD700;
+        }
+
+        /* Dimmed State for Future Nodes */
+        .station-node.future-node {
+            opacity: 0.3;
+            filter: grayscale(100%);
+        }
+
+        /* Active Nodes (Reached by train) - Pop in effect */
+        .station-node.reached-node {
+            opacity: 1;
+            filter: none;
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes popIn {
+            0% {
+                transform: translate(-50%, -50%) scale(0.5);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        .station-node:hover {
+            transform: translate(-50%, -50%) scale(1.2);
+            z-index: 20;
+            opacity: 1;
+            filter: none;
+        }
+
+        /* Train Marker */
+        .train-marker {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            z-index: 30;
+            font-size: 28px;
+            color: #0f766e;
+            /* Teal-700 */
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.3));
+            display: none;
+        }
+
+        /* Roadblock Marker */
+        .roadblock-marker {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            z-index: 35;
+            /* Above train */
+            font-size: 32px;
+            color: #ef4444;
+            /* Red-500 */
+            filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.4));
+            display: none;
+            animation: dropBounce 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes dropBounce {
+            0% {
+                transform: translate(-50%, -150px) scale(0);
+                opacity: 0;
+            }
+
+            60% {
+                transform: translate(-50%, -40%) scale(1.1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                opacity: 1;
+            }
+        }
+
+        .train-marker.arrived {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+            }
+        }
+
+        /* Status Icons (Overlays) */
+        .status-icon {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: white;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 6;
+        }
+
+        .icon-pass {
+            background-color: #10b981;
+        }
+
+        .icon-fail {
+            background-color: #ef4444;
+        }
+
+        .icon-neutral {
+            background-color: #94a3b8;
+        }
+
+        /* Labels */
+        .station-label {
+            position: absolute;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 6px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            width: 180px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid;
+            line-height: 1.2;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        .station-node.future-node .station-label {
+            opacity: 0.6;
+        }
+
+        /* Gateway Zone Lines */
+        .gateway-line {
+            position: absolute;
+            left: 0;
+            width: 100%;
+            border-top: 2px dashed #94a3b8;
+            opacity: 0.5;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .gateway-tag {
+            position: absolute;
+            right: 10px;
+            top: -24px;
+            background: #334155;
+            color: white;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Controls */
+        .controls {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.95);
+            padding: 0;
+            border-radius: 12px;
+            color: white;
+            z-index: 100;
+            width: 280px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+            transition: width 0.3s ease, opacity 0.3s ease;
+        }
+
+        .controls-header {
+            padding: 12px 16px;
+            background: rgba(30, 41, 59, 0.8);
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+
+        .controls-body {
+            padding: 16px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .controls.collapsed {
+            width: auto;
+            overflow: hidden;
+        }
+
+        .controls.collapsed .controls-body {
+            display: none;
+        }
+
+        .controls.collapsed .controls-header {
+            border-radius: 12px;
+            border-bottom: none;
+        }
+
+        .control-group {
+            margin-bottom: 12px;
+            border-top: 1px solid #334155;
+            padding-top: 8px;
+        }
+
+        .control-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #94a3b8;
+            font-weight: bold;
+            margin-bottom: 6px;
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Draggable Controls -->
+    <div class="controls text-sm" id="draggablePanel">
+        <div class="controls-header" id="dragHeader">
+            <h3 class="font-bold text-teal-400 uppercase tracking-wider flex items-center gap-2">
+                <i class="fas fa-arrows-alt text-xs text-slate-400"></i> Calibrator
+            </h3>
+            <button onclick="togglePanel()" class="text-slate-400 hover:text-white transition">
+                <i class="fas fa-chevron-up" id="toggleIcon"></i>
+            </button>
+        </div>
+
+        <div class="controls-body">
+
+            <div class="mb-4 p-3 bg-slate-800 rounded border border-slate-600">
+                <label class="block text-teal-300 text-xs font-bold mb-2 uppercase">
+                    <i class="fas fa-file-csv mr-1"></i> Data Import
+                </label>
+                <input type="file" id="csvInput" accept=".csv,.json" class="hidden" />
+                <button onclick="document.getElementById('csvInput').click()"
+                    class="w-full py-2 bg-teal-700 hover:bg-teal-600 rounded text-white font-bold text-xs transition border border-teal-500 shadow-sm mb-3">
+                    <i class="fas fa-upload mr-1"></i> Upload File
+                </button>
+
+                <button onclick="replayAnimation()"
+                    class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 rounded text-white font-bold text-xs transition border border-emerald-400 shadow-lg flex items-center justify-center gap-2">
+                    <i class="fas fa-play-circle text-sm"></i> START JOURNEY
+                </button>
+                <div id="uploadStatus" class="mt-2 text-[10px] text-slate-400 text-center italic">No file loaded</div>
+            </div>
+
+            <div class="mb-2">
+                <label class="block text-slate-400 text-xs">Bg Opacity</label>
+                <input type="range" id="opacitySlider" min="0" max="1" step="0.1" value="0.2"
+                    class="w-full accent-teal-500">
+            </div>
+
+            <div class="control-group">
+                <span class="control-label">X-Axis (Pillars)</span>
+                <div class="space-y-3">
+                    <div>
+                        <div class="flex justify-between text-xs text-teal-300 mb-1"><span>Strategy (Col 1)</span><span
+                                id="c1Val">15%</span></div>
+                        <input type="range" id="col1Pos" min="5" max="30" value="15" class="w-full accent-teal-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-yellow-300 mb-1"><span>Leadership (Col
+                                2)</span><span id="c2Val">38%</span></div>
+                        <input type="range" id="col2Pos" min="20" max="50" value="38" class="w-full accent-yellow-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-orange-300 mb-1"><span>Execution (Col
+                                3)</span><span id="c3Val">62%</span></div>
+                        <input type="range" id="col3Pos" min="40" max="80" value="62" class="w-full accent-orange-500">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-blue-300 mb-1"><span>Scaling (Col 4)</span><span
+                                id="c4Val">85%</span></div>
+                        <input type="range" id="col4Pos" min="70" max="95" value="85" class="w-full accent-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <span class="control-label">Y-Axis (Elevations)</span>
+                <div class="space-y-2">
+                    <div>
+                        <div class="flex justify-between text-xs text-slate-300"><span>Foundations (Top)</span><span
+                                id="g0Val">150px</span></div>
+                        <input type="range" id="g0Pos" min="50" max="2500" value="150" class="w-full accent-slate-400">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-teal-300"><span>Awareness</span><span
+                                id="g1Val">600px</span></div>
+                        <input type="range" id="g1Pos" min="50" max="2500" value="600" class="w-full accent-teal-400">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-yellow-300"><span>Basic</span><span
+                                id="g2Val">1100px</span></div>
+                        <input type="range" id="g2Pos" min="50" max="2500" value="1100"
+                            class="w-full accent-yellow-400">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-orange-300"><span>Structured</span><span
+                                id="g3Val">1500px</span></div>
+                        <input type="range" id="g3Pos" min="50" max="2500" value="1500"
+                            class="w-full accent-orange-400">
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-xs text-blue-300"><span>Integrated (Bot)</span><span
+                                id="g4Val">1900px</span></div>
+                        <input type="range" id="g4Pos" min="50" max="2500" value="1900" class="w-full accent-blue-400">
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="window.print()"
+                class="mt-4 w-full py-2 bg-slate-700 hover:bg-slate-600 rounded text-white font-bold transition text-xs uppercase">
+                Save PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Map Area -->
+    <div class="metro-container">
+        <div class="metro-bg" id="metroBg"></div>
+        <svg class="track-layer">
+            <!-- Background "Ghost" Track -->
+            <path id="trackPath" d="" fill="none" stroke="#e2e8f0" stroke-width="6" stroke-linecap="round"
+                stroke-linejoin="round" />
+            <!-- Active "Live" Track -->
+            <path id="activePath" d="" fill="none" stroke="#0f766e" stroke-width="6" stroke-linecap="round"
+                stroke-linejoin="round" />
+            <path id="activePathInner" d="" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round" />
+        </svg>
+        <div class="stations-layer" id="stationsContainer"></div>
+
+        <!-- Train Marker -->
+        <div id="trainMarker" class="train-marker"><i class="fas fa-subway"></i></div>
+
+        <!-- Roadblock Marker -->
+        <div id="roadblock" class="roadblock-marker"><i class="fas fa-road-barrier"></i></div>
+    </div>
+
+    <script>
+        // --- DATA ---
+        let sequence = [
+            { id: 1, title: "Clear Business Reason", pillar: 1, status: null, rating: 0, gateway: 'Foundations', isGateway: true },
+            { id: 2, title: "Leadership Commitment", pillar: 2, status: null, rating: 0, gateway: 'Foundations', isGateway: true },
+            { id: 3, title: "Foundational Lean Knowledge", pillar: 2, status: null, rating: 0, gateway: 'Foundations', isGateway: true },
+
+            { id: 4, title: "Team Understanding of Goals", pillar: 2, status: null, rating: 0, gateway: 'Awareness', isGateway: true },
+            { id: 5, title: "Understanding Lean Concepts", pillar: 2, status: null, rating: 0, gateway: 'Awareness', isGateway: true },
+            { id: 6, title: "Consistent & Ongoing Training", pillar: 2, status: null, rating: 0, gateway: 'Awareness', isGateway: false },
+
+            { id: 7, title: "Defined Lean Structure & Roles", pillar: 2, status: null, rating: 0, gateway: 'Basic', isGateway: true },
+            { id: 8, title: "Strategy Management System", pillar: 1, status: null, rating: 0, gateway: 'Basic', isGateway: true },
+            { id: 9, title: "Cascading Strategic Objectives", pillar: 1, status: null, rating: 0, gateway: 'Basic', isGateway: false },
+            { id: 10, title: "Experimenting with Lean Tools", pillar: 3, status: null, rating: 0, gateway: 'Basic', isGateway: true },
+            { id: 11, title: "Embedding Tools in Daily Work", pillar: 3, status: null, rating: 0, gateway: 'Basic', isGateway: false },
+
+            { id: 12, title: "Tracking & Discussing KPIs", pillar: 4, status: null, rating: 0, gateway: 'Structured', isGateway: true },
+            { id: 13, title: "Aligning KPIs to Lean Goals", pillar: 4, status: null, rating: 0, gateway: 'Structured', isGateway: false },
+            { id: 14, title: "Using Daily Huddles", pillar: 3, status: null, rating: 0, gateway: 'Structured', isGateway: true },
+            { id: 15, title: "Employee-Driven Improvements", pillar: 3, status: null, rating: 0, gateway: 'Structured', isGateway: true },
+            { id: 16, title: "Reflecting on Improvements", pillar: 3, status: null, rating: 0, gateway: 'Structured', isGateway: true },
+            { id: 17, title: "Capturing & Sharing Learnings", pillar: 3, status: null, rating: 0, gateway: 'Structured', isGateway: false },
+
+            { id: 18, title: "Extending Lean to Value Chain", pillar: 4, status: null, rating: 0, gateway: 'Integrated', isGateway: true },
+            { id: 19, title: "Integrating Lean Across Depts", pillar: 4, status: null, rating: 0, gateway: 'Integrated', isGateway: false },
+            { id: 20, title: "Leader Presence & Engagement", pillar: 2, status: null, rating: 0, gateway: 'Integrated', isGateway: false },
+            { id: 21, title: "Coaching with Lean Questions", pillar: 2, status: null, rating: 0, gateway: 'Integrated', isGateway: false },
+            { id: 22, title: "Culture of Safe Experimentation", pillar: 2, status: null, rating: 0, gateway: 'Structured', isGateway: true },
+            { id: 23, title: "Routine of Reflection & Sharing", pillar: 3, status: null, rating: 0, gateway: 'Integrated', isGateway: false },
+            { id: 24, title: "Using Pilot Projects", pillar: 3, status: null, rating: 0, gateway: 'Integrated', isGateway: false },
+            { id: 25, title: "Spreading Successful Practices", pillar: 4, status: null, rating: 0, gateway: 'Integrated', isGateway: true },
+            { id: 26, title: "Cross‑Functional Collaboration", pillar: 4, status: null, rating: 0, gateway: 'Structured', isGateway: true },
+            { id: 27, title: "Joint Improvement with Partners", pillar: 4, status: null, rating: 0, gateway: 'Integrated', isGateway: false },
+            { id: 28, title: "Sharing Lean Success Stories", pillar: 4, status: null, rating: 0, gateway: 'Integrated', isGateway: false }
+        ];
+
+        // --- STATE ---
+        const colConfig = { 1: 15, 2: 38, 3: 62, 4: 85 };
+        let gatewayY = { 'Foundations': 150, 'Awareness': 600, 'Basic': 1100, 'Structured': 1500, 'Integrated': 1900 };
+        const localStep = 60;
+
+        // DOM Elements
+        const stationsContainer = document.getElementById('stationsContainer');
+        const trackPath = document.getElementById('trackPath');
+        const activePath = document.getElementById('activePath');
+        const activePathInner = document.getElementById('activePathInner');
+        const metroBg = document.getElementById('metroBg');
+        const csvInput = document.getElementById('csvInput');
+        const uploadStatus = document.getElementById('uploadStatus');
+        const trainMarker = document.getElementById('trainMarker');
+        const roadblock = document.getElementById('roadblock');
+
+        // --- DRAG LOGIC ---
+        const panel = document.getElementById('draggablePanel');
+        const header = document.getElementById('dragHeader');
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
+
+        header.addEventListener('mousedown', (e) => {
+            if (e.target.closest('button')) return;
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            const rect = panel.getBoundingClientRect();
+            initialLeft = rect.left;
+            initialTop = rect.top;
+            panel.style.right = 'auto';
+            panel.style.left = initialLeft + 'px';
+            panel.style.top = initialTop + 'px';
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        });
+
+        function onMouseMove(e) {
+            if (!isDragging) return;
+            const dx = e.clientX - startX;
+            const dy = e.clientY - startY;
+            panel.style.left = (initialLeft + dx) + 'px';
+            panel.style.top = (initialTop + dy) + 'px';
+        }
+
+        function onMouseUp() {
+            isDragging = false;
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        }
+
+        function togglePanel() {
+            panel.classList.toggle('collapsed');
+            const icon = document.getElementById('toggleIcon');
+            icon.className = panel.classList.contains('collapsed') ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+        }
+
+        // --- FILE PARSER ---
+        csvInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const text = e.target.result;
+                if (file.name.toLowerCase().endsWith('.json')) {
+                    processJSON(text);
+                } else if (file.name.toLowerCase().endsWith('.csv')) {
+                    processCSV(text);
+                } else {
+                    uploadStatus.innerText = "Error: Unsupported file format.";
+                    uploadStatus.className = "mt-2 text-[10px] text-red-400 text-center font-bold";
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        function processJSON(text) {
+            try {
+                const data = JSON.parse(text);
+                let dataFound = false;
+                if (data && data.cards && Array.isArray(data.cards)) {
+                    data.cards.forEach(card => {
+                        const id = card.number;
+                        const rating = card.userRating;
+                        if (!isNaN(id) && !isNaN(rating)) {
+                            const item = sequence.find(s => s.id === id);
+                            if (item) {
+                                item.rating = rating;
+                                item.status = rating >= 3 ? 'pass' : 'fail';
+                                dataFound = true;
+                            }
+                        }
+                    });
+                }
+
+                if (dataFound) {
+                    uploadStatus.innerText = "Data Ready! Click Start Journey.";
+                    uploadStatus.className = "mt-2 text-[10px] text-emerald-400 text-center font-bold";
+                    renderMap(false);
+                } else {
+                    uploadStatus.innerText = "Error: Could not parse data.";
+                    uploadStatus.className = "mt-2 text-[10px] text-red-400 text-center font-bold";
+                }
+            } catch (error) {
+                uploadStatus.innerText = "Error: Invalid JSON file.";
+                uploadStatus.className = "mt-2 text-[10px] text-red-400 text-center font-bold";
+            }
+        }
+
+        function processCSV(text) {
+            const lines = text.split('\n');
+            let headerFound = false;
+            let dataFound = false;
+
+            lines.forEach(line => {
+                if (line.includes('"Number","Question"')) {
+                    headerFound = true;
+                    return;
+                }
+                if (!headerFound) return;
+
+                const matches = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                if (matches && matches.length >= 3) {
+                    const id = parseInt(matches[0].replace(/"/g, ''));
+                    const rating = parseInt(matches[2].replace(/"/g, ''));
+                    if (!isNaN(id) && !isNaN(rating)) {
+                        const item = sequence.find(s => s.id === id);
+                        if (item) {
+                            item.rating = rating;
+                            item.status = rating >= 3 ? 'pass' : 'fail';
+                            dataFound = true;
+                        }
+                    }
+                }
+            });
+
+            if (dataFound) {
+                uploadStatus.innerText = "Data Ready! Click Start Journey.";
+                uploadStatus.className = "mt-2 text-[10px] text-emerald-400 text-center font-bold";
+                // Just render map statically first, don't auto animate
+                renderMap(false);
+            } else {
+                uploadStatus.innerText = "Error: Could not parse data.";
+                uploadStatus.className = "mt-2 text-[10px] text-red-400 text-center font-bold";
+            }
+        }
+
+        function replayAnimation() {
+            if (!sequence.some(s => s.status !== null)) {
+                alert("Please import assessment data first!");
+                return;
+            }
+            renderMap(true);
+        }
+
+        function updateGatewayY(key, val) {
+            gatewayY[key] = val;
+        }
+
+        // --- RENDERER ---
+        function renderMap(animate = false) {
+            stationsContainer.innerHTML = '';
+            let points = [];
+
+            // --- 1. Determine Train Position ---
+            let stopIndex = -1;
+            for (let i = 0; i < sequence.length; i++) {
+                const item = sequence[i];
+                if (item.status === null) break;
+                if (item.isGateway && item.status === 'fail') {
+                    stopIndex = i;
+                    break;
+                }
+            }
+
+            const hasData = sequence.some(s => s.status !== null);
+            if (hasData && stopIndex === -1) stopIndex = sequence.length - 1;
+            if (!hasData) stopIndex = -1;
+
+            let gatewayCounts = { 'Foundations': 0, 'Awareness': 0, 'Basic': 0, 'Structured': 0, 'Integrated': 0 };
+
+            Object.keys(gatewayY).forEach(gw => {
+                const line = document.createElement('div');
+                line.className = 'gateway-line';
+                line.style.top = `${gatewayY[gw] - 40}px`;
+                const tag = document.createElement('div');
+                tag.className = 'gateway-tag';
+                tag.innerText = gw + ' Zone';
+                line.appendChild(tag);
+                stationsContainer.appendChild(line);
+            });
+
+            // Add START POINT
+            const startX = colConfig[1]; // Strategy Col
+            const startY = gatewayY['Foundations'] - 100;
+
+            const startNode = document.createElement('div');
+            startNode.className = 'start-node';
+            startNode.style.left = `${startX}%`;
+            startNode.style.top = `${startY}px`;
+            startNode.innerText = 'JOURNEY START';
+            stationsContainer.appendChild(startNode);
+
+            points.push({ x: startX, y: startY, id: 0, isFuture: false });
+
+            sequence.forEach((item, index) => {
+                const gwBaseY = gatewayY[item.gateway];
+                const localIdx = gatewayCounts[item.gateway]++;
+                const xPercent = colConfig[item.pillar];
+                const yPos = gwBaseY + (localIdx * localStep);
+
+                const isFuture = (stopIndex !== -1 && index > stopIndex);
+
+                points.push({ x: xPercent, y: yPos, id: item.id, isFuture: isFuture, index: index });
+
+                const node = document.createElement('div');
+                let nodeClasses = `station-node p${item.pillar}`;
+                if (item.isGateway) nodeClasses += ' node-gold';
+                if (isFuture) nodeClasses += ' future-node';
+                else if (hasData && !isFuture) nodeClasses += ' reached-node';
+
+                node.className = nodeClasses;
+                node.id = `node-${index}`;
+
+                if (item.pillar === 1) node.style.borderColor = '#0f766e';
+                if (item.pillar === 2) node.style.borderColor = '#ca8a04';
+                if (item.pillar === 3) node.style.borderColor = '#ea580c';
+                if (item.pillar === 4) node.style.borderColor = '#2563eb';
+
+                node.style.left = `${xPercent}%`;
+                node.style.top = `${yPos}px`;
+                node.innerText = item.id;
+
+                if (item.status) {
+                    const icon = document.createElement('div');
+                    icon.className = `status-icon ${item.status === 'pass' ? 'icon-pass' : 'icon-fail'}`;
+                    icon.innerHTML = item.status === 'pass' ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>';
+                    node.appendChild(icon);
+                }
+
+                const label = document.createElement('div');
+                label.className = `station-label p${item.pillar}`;
+                label.innerText = item.title;
+                if (item.pillar === 1) { label.style.left = '50px'; label.style.textAlign = 'left'; }
+                else if (item.pillar === 4) { label.style.right = '50px'; label.style.textAlign = 'right'; }
+                else { label.style.left = '50px'; label.style.textAlign = 'left'; }
+
+                node.appendChild(label);
+                stationsContainer.appendChild(node);
+            });
+
+            // --- PATH & ANIMATION LOGIC ---
+            if (points.length > 0) {
+                let pathPoints = [...points];
+                pathPoints.sort((a, b) => a.y - b.y); // Sort Top -> Bottom
+
+                const w = stationsContainer.offsetWidth;
+                const getX = (pct) => (pct / 100) * w;
+
+                const buildPath = (pts) => {
+                    if (pts.length === 0) return '';
+                    let d = `M ${getX(pts[0].x)} ${pts[0].y}`;
+                    for (let i = 1; i < pts.length; i++) {
+                        const curr = pts[i];
+                        const prev = pts[i - 1];
+                        const cx = getX(curr.x);
+                        const px = getX(prev.x);
+
+                        if (curr.x !== prev.x) {
+                            const midY = (prev.y + curr.y) / 2;
+                            d += ` C ${px} ${midY}, ${cx} ${midY}, ${cx} ${curr.y}`;
+                        } else {
+                            d += ` L ${cx} ${curr.y}`;
+                        }
+                    }
+                    return d;
+                };
+
+                // 1. Ghost Path
+                const fullPathD = buildPath(pathPoints);
+                trackPath.setAttribute('d', fullPathD);
+
+                // 2. Active Path
+                let activePoints = [];
+                if (hasData) {
+                    activePoints = pathPoints.filter(p => !p.isFuture);
+                } else {
+                    activePath.setAttribute('d', '');
+                    activePathInner.setAttribute('d', '');
+                    trainMarker.style.display = 'none';
+                    roadblock.style.display = 'none';
+                    return;
+                }
+
+                const activePathD = buildPath(activePoints);
+                activePath.setAttribute('d', activePathD);
+                activePathInner.setAttribute('d', activePathD);
+
+                // 3. ANIMATION
+                if (animate && activePoints.length > 0) {
+                    const totalLength = activePath.getTotalLength();
+
+                    // Reset elements
+                    trainMarker.style.display = 'block';
+                    trainMarker.classList.remove('arrived');
+                    roadblock.style.display = 'none'; // Hide roadblock initially
+
+                    activePath.style.transition = 'none';
+                    activePathInner.style.transition = 'none';
+
+                    activePath.style.strokeDasharray = totalLength;
+                    activePath.style.strokeDashoffset = totalLength;
+                    activePathInner.style.strokeDasharray = totalLength;
+                    activePathInner.style.strokeDashoffset = totalLength;
+
+                    activePath.getBoundingClientRect();
+
+                    // Animate
+                    const duration = Math.max(15000, Math.min(20000, totalLength * 5));
+
+                    activePath.style.transition = `stroke-dashoffset ${duration}ms linear`;
+                    activePath.style.strokeDashoffset = '0';
+
+                    activePathInner.style.transition = `stroke-dashoffset ${duration}ms linear`;
+                    activePathInner.style.strokeDashoffset = '0';
+
+                    const startTime = performance.now();
+
+                    function animateTrain(time) {
+                        let elapsed = time - startTime;
+                        let progress = Math.min(elapsed / duration, 1);
+
+                        const currentLen = progress * totalLength;
+                        const p = activePath.getPointAtLength(currentLen);
+
+                        trainMarker.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`;
+
+                        if (progress < 1) {
+                            requestAnimationFrame(animateTrain);
+                        } else {
+                            trainMarker.classList.add('arrived');
+                            // Show Roadblock at end if there is a stop point (and it's not full completion)
+                            if (stopIndex !== sequence.length - 1) {
+                                roadblock.style.display = 'block';
+                                roadblock.style.left = trainMarker.style.left; // Use computed train pos
+                                roadblock.style.top = trainMarker.style.top;
+                                // Offset slightly? No, right on top is clearer "blocked"
+                            }
+                        }
+                    }
+
+                    requestAnimationFrame(animateTrain);
+                } else {
+                    // Static render
+                    if (hasData && activePoints.length > 0) {
+                        trainMarker.style.display = 'block';
+                        const totalLength = activePath.getTotalLength();
+                        const p = activePath.getPointAtLength(totalLength);
+                        trainMarker.style.transform = `translate(${p.x}px, ${p.y}px) translate(-50%, -50%)`;
+
+                        activePath.style.strokeDasharray = 'none';
+                        activePath.style.strokeDashoffset = '0';
+                        activePathInner.style.strokeDasharray = 'none';
+                        activePathInner.style.strokeDashoffset = '0';
+
+                        if (stopIndex !== -1 && stopIndex !== sequence.length - 1) {
+                            roadblock.style.display = 'block';
+                            roadblock.style.left = `${p.x}px`; // Absolute px from svg point
+                            roadblock.style.top = `${p.y}px`;
+                            // Need to convert SVG coords to CSS % if resizing?
+                            // SVG is 100% width of container. p.x is pixels.
+                            // station-node uses %. 
+                            // Better to use the exact CSS position of the last node?
+                            // Yes, finding the node element is safer for responsiveness.
+                            const lastNode = points.find(pt => pt.id === sequence[stopIndex].id);
+                            if (lastNode) {
+                                roadblock.style.left = `${lastNode.x}%`;
+                                roadblock.style.top = `${lastNode.y}px`;
+                            }
+                        } else {
+                            roadblock.style.display = 'none';
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- LISTENERS ---
+        window.addEventListener('resize', () => renderMap(false));
+
+        document.getElementById('opacitySlider').addEventListener('input', (e) => {
+            metroBg.style.opacity = e.target.value;
+        });
+
+        ['col1Pos', 'col2Pos', 'col3Pos', 'col4Pos'].forEach((id, idx) => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                colConfig[idx + 1] = parseInt(e.target.value);
+                document.getElementById(`c${idx + 1}Val`).innerText = e.target.value + '%';
+                renderMap(false);
+            });
+        });
+
+        ['g0', 'g1', 'g2', 'g3', 'g4'].forEach(k => {
+            const map = { 'g0': 'Foundations', 'g1': 'Awareness', 'g2': 'Basic', 'g3': 'Structured', 'g4': 'Integrated' };
+            const elId = k + 'Pos';
+            const valId = k + 'Val';
+
+            document.getElementById(elId).addEventListener('input', (e) => {
+                const val = parseInt(e.target.value);
+                document.getElementById(valId).innerText = val + 'px';
+                gatewayY[map[k]] = val;
+                renderMap(false);
+            });
+        });
+
+        setTimeout(() => renderMap(false), 100);
+
+    </script>
+    <!-- ============================================================ -->
+    <!-- LEAN@GS DATA BRIDGE (Paste this at the bottom of Lean_journey.html) -->
+    <!-- ============================================================ -->
+
+    <!-- 1. Load the Bridge Utility -->
+    <script src="assets/data_bridge.js"></script>
+
+    <script>
+        // --- DATA BRIDGE HANDLER ---
+        // The bridge calls this function when data arrives from the Hub
+        // Since 'processCSV' already exists in your code, we just wrap it or ensure it's exposed.
+
+        // Note: Your existing processCSV expects raw text. That matches exactly what the bridge provides.
+
+        // We just need to ensure the bridge knows this file uses 'processCSV'
+        // (The bridge script I wrote automatically detects 'processCSV', so this is plug-and-play).
+
+        // Optional: Add visual confirmation when data loads automatically
+        const originalProcessCSV = window.processCSV;
+
+        window.processCSV = function (text) {
+            console.log("[Metro Map] Processing data from Bridge...");
+
+            // Call appropriate logic
+            if (text && text.trim().startsWith('{')) {
+                if (typeof processJSON === 'function') processJSON(text);
+            } else {
+                if (originalProcessCSV) originalProcessCSV(text);
+            }
+
+            // Update status UI if it exists
+            const status = document.getElementById('uploadStatus');
+            if (status) {
+                status.innerText = "Data Loaded from Hub!";
+                status.className = "mt-2 text-[10px] text-emerald-400 text-center font-bold";
+            }
+
+            // Auto-trigger animation (Optional - remove if you prefer manual start)
+            // renderMap(true); 
+        };
+    </script>
+</body>
+
+</html>

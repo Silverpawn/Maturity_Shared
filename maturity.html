@@ -1,0 +1,1687 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Lean Maturity Assessment</title>
+    <!-- Load local assets for offline use -->
+    <link rel="stylesheet" href="assets/fonts.css">
+    <link rel="stylesheet" href="assets/brand.css">
+    <script src="assets/tailwind.js"></script>
+    <script src="assets/chart.min.js"></script>
+    <!-- Load flashcard data from external JS to avoid fetch on file:// -->
+    <script src="assets/initial_flashcard_data.js"></script>
+    <!-- Re-enable jsPDF and html2canvas for PDF export (online resources allowed) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script>
+        // Make jsPDF available globally. The UMD build exposes jspdf on the window object.
+        if (window.jspdf && window.jspdf.jsPDF) {
+            window.jsPDF = window.jspdf.jsPDF;
+        }
+    </script>
+
+    <!-- Removed misplaced next step navigation from <head>. We'll add a proper link at the bottom of the page. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #4D217A;
+        }
+
+        .flashcard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .flashcard {
+            height: 280px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .flashcard:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .flashcard.gateway {
+            border-color: #FFD700;
+        }
+
+        .flashcard.mastered {
+            opacity: 0.6;
+        }
+
+        .flashcard.mastered .mastered-overlay {
+            opacity: 1;
+        }
+
+        .flashcard.evaluated {
+            border-color: #009999;
+        }
+
+        .flashcard.gateway.evaluated {
+            border-color: #FFD700;
+            /* Gold for Gateway */
+            box-shadow: inset 0 0 0 3px #009999, 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .flashcard.gateway.evaluated:hover {
+            box-shadow: inset 0 0 0 3px #009999, 0 8px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .status-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .comment-indicator {
+            position: absolute;
+            bottom: 1rem;
+            right: 1rem;
+            color: #64748b;
+            /* slate-500 */
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 900px;
+            max-height: 90vh;
+            overflow-y: auto;
+            transform: scale(0.95);
+            transition: transform 0.3s ease;
+            position: relative;
+        }
+
+        .modal-overlay.visible .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-close-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: #f0f2f5;
+            border-radius: 99px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .modal-content::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .modal-content::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        .modal-content::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+        }
+
+        .data-plate-input {
+            border-width: 2px !important;
+            --tw-border-opacity: 1 !important;
+            border-color: rgb(209 213 219 / var(--tw-border-opacity)) !important;
+            background-color: #f9fafb;
+        }
+
+        .user-guide-content h2 {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-top: 1.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 0.5rem;
+        }
+
+        .user-guide-content p {
+            margin-bottom: 1rem;
+            line-height: 1.6;
+        }
+
+        .user-guide-content img {
+            width: 100%;
+            max-width: 600px;
+            margin: 1rem auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-guide-content ul {
+            list-style-type: disc;
+            margin-left: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        /* ADDED STYLES FOR VISIBILITY FIXES */
+        #current-score-label {
+            color: white !important;
+        }
+
+        .gateway-marker.gateway-passed {
+            color: #22c55e !important;
+            /* Tailwind green-500 */
+        }
+
+        .gateway-marker.gateway-failed {
+            color: #ef4444 !important;
+            /* Tailwind red-500 */
+        }
+    </style>
+</head>
+
+<body class="p-4 sm:p-6 md:p-8" style="background-color: #4D217A; color: var(--se-gray0);">
+
+    <div class="max-w-7xl mx-auto w-full">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-white">Interactive Lean Maturity Assessment</h1>
+            <p class="text-lg text-gray-300 mt-2">Click any card to explore a concept, or use the buttons for more
+                options.</p>
+            <div class="mt-4 flex flex-wrap justify-center gap-2">
+                <button id="dashboard-btn"
+                    class="bg-[#54646E] hover:bg-opacity-80 text-white font-bold py-2 px-4 rounded-lg transition">View
+                    Dashboard</button>
+                <button id="export-btn"
+                    class="bg-[#009999] hover:bg-opacity-80 text-white font-bold py-2 px-4 rounded-lg transition">Export
+                    Results (JSON)</button>
+                <button id="import-btn"
+                    class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition">Import
+                    Results</button>
+                <input type="file" id="file-import-input" class="hidden" accept=".csv,.json"
+                    title="Import Assessment File">
+                <button id="reset-btn"
+                    class="bg-[#DA1E28] hover:bg-opacity-80 text-white font-bold py-2 px-4 rounded-lg transition">Reset
+                    Progress</button>
+                <button id="user-guide-btn"
+                    class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition">User
+                    Guide</button>
+                <button id="view-key-btn"
+                    class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-4 rounded-lg transition flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="mr-2 h-5 w-5">
+                        <path
+                            d="m21.73 18.27-1.5-1.5C19.45 16.01 18 16.01 17.22 15.23L14 12l-2.35-2.35A5.82 5.82 0 0 0 8 8.01c-1.57 0-3.07.62-4.15 1.7S2 12.44 2 14a6 6 0 0 0 8 5.66l.34-.03.34-.03L12 18l3.23 3.23c.78.78 2.23.78 3.01 0l1.5-1.5c.78-.78.78-2.23 0-3.01Z">
+                        </path>
+                        <path d="m15 5 3 3"></path>
+                    </svg>
+                    <span>View Key</span>
+                </button>
+                <!-- Added: Maturity Explainer button to open the Lean journey explanation within the toolkit. Using an anchor with
+                 parent.navigateTo mirrors the navigation pattern used on the Orientation page -->
+                <a href="maturity_explainer.html" onclick="parent.navigateTo('maturity_explainer.html'); return false;"
+                    class="bg-amber-400 hover:bg-amber-500 text-white font-bold py-2 px-4 rounded-lg transition flex items-center">
+                    <!-- Icon depicting an open book for explainer -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                        class="mr-2 h-5 w-5">
+                        <path d="M2 7v13a1 1 0 0 0 1 1h19" />
+                        <path d="M2 7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v13" />
+                        <path d="M14 7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v13" />
+                    </svg>
+                    <span>Maturity Explainer</span>
+                </a>
+            </div>
+        </header>
+
+        <!-- Step progress indicator -->
+        <div class="flex justify-between items-center max-w-4xl mx-auto mb-6">
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-[#009999]"></div>
+                <span class="text-xs mt-1" style="color: var(--se-gray0);">Assess</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-500"></div>
+                <span class="text-xs mt-1" style="color: var(--se-gray0);">Analyse</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-500"></div>
+                <span class="text-xs mt-1" style="color: var(--se-gray0);">Prepare</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-500"></div>
+                <span class="text-xs mt-1" style="color: var(--se-gray0);">Align</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-500"></div>
+                <span class="text-xs mt-1" style="color: var(--se-gray0);">Create</span>
+            </div>
+            <div class="flex flex-col items-center">
+                <div class="w-8 h-8 rounded-full bg-gray-500"></div>
+                <span class="text-xs mt-1" style="color: var(--se-gray0);">Communicate</span>
+            </div>
+        </div>
+
+        <!-- User Data Plate -->
+        <div id="data-plate" class="bg-white p-6 rounded-lg shadow-md mb-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <label for="assessment-name" class="block text-sm font-medium text-gray-700">Maturity Assessment -
+                        [Project/Department Name]</label>
+                    <input type="text" id="assessment-name"
+                        class="data-plate-input mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="org-name" class="block text-sm font-medium text-gray-700">Org</label>
+                    <input type="text" id="org-name"
+                        class="data-plate-input mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="assessment-date" class="block text-sm font-medium text-gray-700">Date of
+                        Assessment</label>
+                    <input type="date" id="assessment-date"
+                        class="data-plate-input mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="assessed-by" class="block text-sm font-medium text-gray-700">Assessed By:</label>
+                    <input type="text" id="assessed-by"
+                        class="data-plate-input mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label for="local-pm" class="block text-sm font-medium text-gray-700">For OE Local PM</label>
+                    <input type="text" id="local-pm"
+                        class="data-plate-input mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Applicable for GS Dashboard</label>
+                    <div class="mt-2 flex items-center space-x-6">
+                        <label class="flex items-center">
+                            <input type="radio" name="gs-dashboard-radio" id="gs-dashboard-yes" value="Y"
+                                class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                            <span class="ml-2 text-sm text-gray-700">Yes</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="gs-dashboard-radio" id="gs-dashboard-no" value="N"
+                                class="h-4 w-4 text-indigo-600 border-gray-300 focus:ring-indigo-500">
+                            <span class="ml-2 text-sm text-gray-700">No</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="lg:col-span-3">
+                    <label for="scope" class="block text-sm font-medium text-gray-700">Scope</label>
+                    <textarea id="scope" rows="3"
+                        class="data-plate-input mt-1 block w-full rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                        placeholder="Brief description of what the assessment covers..."></textarea>
+                </div>
+            </div>
+        </div>
+
+        <main id="flashcard-grid" class="flashcard-grid"></main>
+    </div>
+
+    <!-- Main Modal for Cards -->
+    <div id="modal-overlay" class="modal-overlay">
+        <div id="modal-content" class="modal-content">
+            <!-- Content injected by JS -->
+        </div>
+    </div>
+
+    <!-- Key Modal -->
+    <div id="key-modal-overlay" class="modal-overlay">
+        <div id="key-modal-content" class="modal-content">
+            <button id="key-modal-close-btn" class="modal-close-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <h3 class="text-xl font-bold text-center text-[#1B1534] mb-4">Visual Key</h3>
+
+            <div class="flashcard-grid mb-6">
+                <div
+                    class="flashcard gateway p-4 flex flex-col justify-center items-center text-center bg-slate-50 h-auto min-h-[160px] !cursor-default">
+                    <h4 class="font-semibold text-slate-800">Gateway Question</h4>
+                    <p class="text-xs text-slate-600 mt-1">A critical concept. Has a <span class="font-semibold">gold
+                            border</span>.</p>
+                </div>
+                <div
+                    class="flashcard evaluated p-4 flex flex-col justify-center items-center text-center bg-slate-50 h-auto min-h-[160px] !cursor-default">
+                    <h4 class="font-semibold text-slate-800">Evaluated</h4>
+                    <p class="text-xs text-slate-600 mt-1">Scored and in the dashboard. Has a <span
+                            class="font-semibold">petrol border</span>.</p>
+                </div>
+                <div
+                    class="flashcard gateway evaluated p-4 flex flex-col justify-center items-center text-center bg-slate-50 h-auto min-h-[160px] !cursor-default">
+                    <h4 class="font-semibold text-slate-800">Evaluated Gateway</h4>
+                    <p class="text-xs text-slate-600 mt-1">A scored Gateway question. Has <span
+                            class="font-semibold">gold & petrol</span> borders.</p>
+                </div>
+                <div
+                    class="flashcard mastered p-4 flex flex-col justify-center items-center text-center bg-slate-50 h-auto min-h-[160px] !cursor-default">
+                    <h4 class="font-semibold text-slate-800">Mastered</h4>
+                    <p class="text-xs text-slate-600 mt-1">Concept is understood. The card appears <span
+                            class="font-semibold">faded</span>.</p>
+                </div>
+                <div
+                    class="flashcard p-4 flex flex-col justify-between text-center bg-slate-50 h-auto min-h-[160px] !cursor-default">
+                    <h4 class="font-semibold text-slate-800">Scored / Commented</h4>
+                    <div class="flex justify-between items-center mt-2 w-full px-1">
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="currentColor" class="text-slate-500">
+                                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                            </svg>
+                            <span class="text-sm font-medium text-slate-600">Rating:</span>
+                        </div>
+                        <span
+                            class="font-bold text-xl text-white bg-[#009999] rounded-full flex items-center justify-center w-9 h-9 shadow-md">5</span>
+                    </div>
+                </div>
+            </div>
+            <div id="color-key-container"
+                class="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 pt-4 border-t border-gray-200">
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard Modal -->
+    <div id="dashboard-modal-overlay" class="modal-overlay">
+        <div id="dashboard-modal-content" class="modal-content">
+            <button id="dashboard-modal-close-btn" class="modal-close-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div id="dashboard-to-export">
+                <h2 class="text-2xl font-bold text-[#1B1534] mb-6 text-center">Assessment Dashboard</h2>
+
+                <div class="mb-8 pt-10">
+                    <h3 class="text-xl font-bold text-gray-800 text-center mb-4">Current Lean Maturity Level</h3>
+                    <div id="maturity-timeline-container" class="relative px-5">
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-6">
+                    <div class="flex flex-col items-center justify-center p-4 bg-gray-50 rounded-lg border">
+                        <h3 class="text-lg font-semibold text-gray-700">Overall Maturity Level</h3>
+                        <div id="overall-maturity-display" class="text-center">
+                            <p id="overall-maturity-score" class="text-4xl font-bold text-[#009999] mt-2">0.0</p>
+                            <p id="overall-maturity-level" class="text-lg font-semibold text-[#1B1534]">Calculating...
+                            </p>
+                        </div>
+                        <div id="gateway-warning" class="mt-2 text-center text-sm text-red-600 font-semibold h-10">
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Gateway Status</h3>
+                        <div id="gateway-status-table" class="space-y-2"></div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Progress by Category</h3>
+                        <canvas id="bar-chart"></canvas>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Maturity Profile</h3>
+                        <div class="w-full max-w-lg mx-auto">
+                            <canvas id="radar-chart"></canvas>
+                            <div id="radar-chart-key" class="mt-4 text-sm text-gray-600"></div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Evaluated Questions & Comments</h3>
+                        <div id="evaluated-questions-list"
+                            class="space-y-4 max-h-96 overflow-y-auto bg-gray-50 p-4 rounded-lg border">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6 text-center">
+                <!-- PDF export disabled in offline mode -->
+                <!-- The Export to PDF button is visible now that PDF export has been restored -->
+                <button id="export-pdf-btn"
+                    class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition">Export to
+                    PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- User Guide Modal -->
+    <div id="user-guide-modal-overlay" class="modal-overlay">
+        <div id="user-guide-modal-content" class="modal-content user-guide-content">
+            <button id="user-guide-modal-close-btn" class="modal-close-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <h2>User Guide</h2>
+            <p>Welcome! This tool is designed to help you and your team understand your current strengths and
+                opportunities in applying Lean principles. Think of it as a guided self-assessment.</p>
+            <p>Your progress is saved automatically in your web browser, so you can leave and come back to it at any
+                time.</p>
+
+            <h2>Step 1: Fill in Your Assessment Details</h2>
+            <p>Before you begin, you'll see a form at the top of the page called the "User Data Plate."</p>
+            <img src="https://i.ibb.co/DfMtTtZr/Screenshot-2025-07-04-003543.png" alt="Data Plate">
+            <p>It's helpful to fill this in, as the information will be used to title your exported reports.</p>
+            <ul>
+                <li><strong>Maturity Assessment - [Project/Department Name]:</strong> The name of the project or team
+                    being assessed.</li>
+                <li><strong>Org:</strong> Your company or organization's name.</li>
+                <li><strong>Date of Assessment:</strong> The date you are performing the assessment.</li>
+                <li><strong>Assessed By:</strong> Your name.</li>
+                <li><strong>Scope:</strong> A brief sentence describing what this assessment covers (e.g., "The
+                    manufacturing process for Product X").</li>
+            </ul>
+
+            <h2>Step 2: Exploring the Concepts (The Flashcards)</h2>
+            <p>The main screen shows a grid of flashcards. Each card represents a key Lean concept with a guiding
+                question.</p>
+            <img src="https://i.ibb.co/RTgVWFYp/Screenshot-2025-07-04-003619.png" alt="Flashcard Grid">
+            <ul>
+                <li><strong>Colors:</strong> The different colors represent different themes, like "Foundation" or
+                    "Leadership & Culture."</li>
+                <li><strong>Gold Border:</strong> Cards with a <strong>gold border</strong> are "Gateway" questions.
+                    These are critical concepts you generally need to have in place before you can effectively move to
+                    the next level of Lean maturity.</li>
+                <li><strong>Action:</strong> Simply <strong>click on any card</strong> to open a detailed view and
+                    assess yourself.</li>
+            </ul>
+
+            <h2>Step 3: Assessing a Concept (Inside the Pop-up Window)</h2>
+            <p>After clicking a card, a detailed window will appear. Here you can learn about the concept and rate your
+                team.</p>
+            <img src="https://i.ibb.co/mVghP6dh/Screenshot-2025-07-04-003703.png" alt="Modal View">
+            <ol>
+                <li><strong>Understand the Concept:</strong>
+                    <ul>
+                        <li>On the left, you'll see the main <strong>question</strong>, an image, and <strong>Example
+                                Guidance</strong> to help you understand what success looks like.</li>
+                        <li>On the right, you'll find the <strong>Objective</strong> of the concept and the
+                            <strong>Scoring Criteria</strong>, which explains what each score from 1 to 5 means.
+                        </li>
+                    </ul>
+                </li>
+                <li><strong>Rate Yourself:</strong>
+                    <ul>
+                        <li>At the bottom, use the <strong>Self-Assessment slider</strong> to rate your team's current
+                            maturity from 1 (Absent) to 5 (Embedded). For the first three questions, you will use simple
+                            Yes/No radio buttons.</li>
+                    </ul>
+                </li>
+                <li><strong>Add Notes:</strong>
+                    <ul>
+                        <li>Use the <strong>Comments & Actions</strong> box to write down your thoughts, evidence, or
+                            ideas for improvement. This is very useful for your final report.</li>
+                    </ul>
+                </li>
+                <li><strong>Update the Card's Status:</strong>
+                    <ul>
+                        <li><strong>Mark as Evaluated:</strong> Click this button when you are finished assessing the
+                            card. It will get a <strong>petrol border</strong> on the main screen, and its score and
+                            comments will be added to your dashboard.</li>
+                        <li><strong>Mark as Mastered:</strong> If you are learning the questions and you have understood
+                            this concept, you can click this. The card will be faded out on the main screen to show that
+                            it's understood.</li>
+                    </ul>
+                </li>
+            </ol>
+            <p>When you're done with a card, click the 'X' in the top-right corner or press the <code>Esc</code> key to
+                close the window.</p>
+
+            <h2>Step 4: Viewing Your Results (The Dashboard)</h2>
+            <p>At any time, you can see a summary of your results by clicking the purple
+                <strong><code>View Dashboard</code></strong> button at the top of the page.
+            </p>
+            <img src="https://i.ibb.co/M5jfS2Dc/Screenshot-2025-07-04-003731.png" alt="Dashboard View">
+            <p>Here you will find:</p>
+            <ul>
+                <li><strong>Current Lean Maturity Level:</strong> An overall summary of your progress on a 5-stage
+                    timeline.</li>
+                <li><strong>Gateway Status:</strong> A quick check to see if you've passed the critical "Gateway"
+                    questions for each level.</li>
+                <li><strong>Progress by Category:</strong> A bar chart showing your average score in each theme.</li>
+                <li><strong>Maturity Profile:</strong> A "spider web" chart that gives you a great visual of your
+                    strengths and weaknesses.</li>
+                <li><strong>Evaluated Questions & Comments:</strong> A list of all the questions you marked as
+                    "Evaluated," along with the scores and comments you entered.</li>
+            </ul>
+
+            <h2>Managing Your Assessment Data</h2>
+            <p>At the top of the page, there are several buttons to help you manage your work:</p>
+            <ul>
+                <li><strong><code>Export Results (CSV)</code>:</strong> This saves all your scores and comments into a
+                    CSV file, which can be opened by programs like Microsoft Excel or Google Sheets. This is a great way
+                    to create a backup of your work.</li>
+                <li><strong><code>Import Results (CSV)</code>:</strong> This allows you to load a previously saved
+                    assessment from a CSV file. <strong>Warning:</strong> This will overwrite any progress currently
+                    saved in your browser.</li>
+                <li><strong><code>Export to PDF</code>:</strong> (Inside the Dashboard) This creates a
+                    professional-looking, multi-page report containing your dashboard visuals and a detailed list of all
+                    your answers and comments. It's perfect for sharing with your team or leadership.</li>
+                <li><strong><code>Reset Progress</code>:</strong> This red button will <strong>erase all your
+                        progress</strong> and start the assessment over from the beginning. A confirmation message will
+                    appear to prevent you from doing this by accident.</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const themeColors = { 'Foundation': { light: 'bg-sky-100', text: 'text-sky-800' }, 'Awareness and Training': { light: 'bg-green-100', text: 'text-green-800' }, 'Lean Structure and Strategy': { light: 'bg-purple-100', text: 'text-purple-800' }, 'Lean Tools and KPI Alignment': { light: 'bg-amber-100', text: 'text-amber-800' }, 'Daily Management and CI': { light: 'bg-indigo-100', text: 'text-indigo-800' }, 'Learning and Value Chain Integration': { light: 'bg-rose-100', text: 'text-rose-800' }, 'Leadership & Culture': { light: 'bg-red-100', text: 'text-red-800' }, 'Learning & Scaling': { light: 'bg-teal-100', text: 'text-teal-800' }, 'Collaboration & Feedback': { light: 'bg-orange-100', text: 'text-orange-800' }, 'Communication': { light: 'bg-gray-200', text: 'text-gray-800' }, 'Default': { light: 'bg-slate-100', text: 'text-slate-800' } };
+        const fiveLevelScoringLabels = { "1": "Absent", "2": "Emerging", "3": "Structured", "4": "Consistent", "5": "Embedded" };
+
+        const maturityStages = [
+            { level: 1, name: "Lean Awareness", description: "Initial recognition of Lean principles", icon: "https://i.ibb.co/QvV1LsxD/Picture1.png" },
+            { level: 2, name: "Basic Implementation", description: "Early application of Lean practices", icon: "https://i.ibb.co/rG4JshCB/Picture2.png" },
+            { level: 3, name: "Structured Approach", description: "Development of organized Lean processes", icon: "https://i.ibb.co/VpwN5PFw/Picture3.png" },
+            { level: 4, name: "Integrated Lean Culture", description: "Creation of a cohesive Lean environment", icon: "https://i.ibb.co/DHFz1P9V/Picture4.png" },
+            { level: 5, name: "Lean Enterprise", description: "Achieving full enterprise-wide Lean integration", icon: "https://i.ibb.co/GS311wX/Picture5.png" }
+        ];
+        const maturityLevels = Object.fromEntries(maturityStages.map(stage => [stage.level, stage.name]));
+
+        const gatewayLevelMapping = {
+            "Lean Awareness": [1, 2, 3, 4, 5],
+            "Basic Implementation": [7, 8, 10],
+            "Structured Approach": [12, 14, 15, 16, 22, 26],
+            "Integrated Lean Culture": [18, 25]
+        };
+
+        let initialFlashcardData = window.initialFlashcardData || [];
+
+        // --- Global State ---
+        let flashcardData = [];
+        let barChartInstance = null;
+        let radarChartInstance = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- Element References ---
+            const grid = document.getElementById('flashcard-grid');
+            const modalOverlay = document.getElementById('modal-overlay');
+            const modalContent = document.getElementById('modal-content');
+            const dashboardModalOverlay = document.getElementById('dashboard-modal-overlay');
+            const resetButton = document.getElementById('reset-btn');
+            const exportButton = document.getElementById('export-btn');
+            const dashboardButton = document.getElementById('dashboard-btn');
+            const exportPdfButton = document.getElementById('export-pdf-btn');
+            const userGuideButton = document.getElementById('user-guide-btn');
+            const userGuideModalOverlay = document.getElementById('user-guide-modal-overlay');
+            const viewKeyButton = document.getElementById('view-key-btn');
+            const keyModalOverlay = document.getElementById('key-modal-overlay');
+            const keyModalCloseButton = document.getElementById('key-modal-close-btn');
+
+            // --- Local Storage Keys ---
+            const LS_KEY_CARDS = 'leanMaturityState';
+            const LS_KEY_HEADER = 'leanMaturityHeader';
+
+            // --- NEW: Function to generate and save all necessary output data ---
+            function generateAndSaveMaturityData() {
+                // 1. Generate and save Dashboard Summary
+                const dashboardSummary = calculateDashboardData();
+                localStorage.setItem('leanMaturityDashboardSummary', JSON.stringify(dashboardSummary));
+
+                // 2. Generate and save CSV content
+                const headerData = JSON.parse(localStorage.getItem(LS_KEY_HEADER)) || {};
+                let csvContent = '';
+
+                csvContent += `"Maturity Assessment - [Project/Department Name]","${headerData['assessment-name'] || ''}","Org","${headerData['org-name'] || ''}"\n`;
+                csvContent += `"Date of Assessment:","${headerData['assessment-date'] || ''}"\n`;
+                csvContent += `"Assessed By:","${headerData['assessed-by'] || ''}","For OE Local PM","${headerData['local-pm'] || ''}"\n`;
+                csvContent += `"Applicable for GS Dashboard","${headerData['gs-dashboard'] || ''}"\n`;
+                csvContent += `"Scope:","${(headerData['scope'] || '').replace(/"/g, '""')}"\n\n`;
+
+                const { overallMaturity, weightedScore } = dashboardSummary;
+                csvContent += `"Current Maturity Level","${overallMaturity}"\n`;
+                csvContent += `"Current Maturity Score","${weightedScore.toFixed(1)}"\n\n`;
+
+                csvContent += '"Number","Question","Rating","Mastered","Evaluated","Comments"\n';
+
+                flashcardData.forEach(card => {
+                    const row = [
+                        card.number,
+                        `"${card.question.replace(/"/g, '""')}"`,
+                        card.userRating,
+                        card.mastered ? 'Yes' : 'No',
+                        card.evaluated ? 'Yes' : 'No',
+                        `"${(card.comments || '').replace(/"/g, '""')}"`
+                    ].join(',');
+                    csvContent += row + '\n';
+                });
+
+                localStorage.setItem('maturityCSV', csvContent);
+            }
+
+            // --- State Management ---
+            function loadState() {
+                const savedCardState = localStorage.getItem(LS_KEY_CARDS);
+                flashcardData = initialFlashcardData.map(initialCard => {
+                    const savedCard = savedCardState ? JSON.parse(savedCardState).find(p => p.number === initialCard.number) : null;
+                    const defaults = { mastered: false, evaluated: false, userRating: 1, comments: "" };
+                    return { ...defaults, ...initialCard, ...savedCard };
+                });
+
+                const savedHeaderState = localStorage.getItem(LS_KEY_HEADER);
+                if (savedHeaderState) {
+                    const headerData = JSON.parse(savedHeaderState);
+                    Object.keys(headerData).forEach(key => {
+                        const input = document.getElementById(key);
+                        if (input) {
+                            input.value = headerData[key];
+                        } else {
+                            const radio = document.querySelector(`input[name="${key}-radio"][value="${headerData[key]}"]`);
+                            if (radio) radio.checked = true;
+                        }
+                    });
+                }
+            }
+
+            function saveCardState() {
+                const progressToSave = flashcardData.map(card => ({
+                    number: card.number,
+                    mastered: card.mastered,
+                    evaluated: card.evaluated,
+                    userRating: card.userRating,
+                    comments: card.comments,
+                }));
+                localStorage.setItem(LS_KEY_CARDS, JSON.stringify(progressToSave));
+                updateDashboard();
+                generateAndSaveMaturityData(); // <-- ADDED: Automatically update saved outputs on every change
+            }
+
+            function saveHeaderState() {
+                const headerData = {
+                    'assessment-name': document.getElementById('assessment-name').value,
+                    'org-name': document.getElementById('org-name').value,
+                    'assessment-date': document.getElementById('assessment-date').value,
+                    'assessed-by': document.getElementById('assessed-by').value,
+                    'local-pm': document.getElementById('local-pm').value,
+                    'gs-dashboard': document.querySelector('input[name="gs-dashboard-radio"]:checked')?.value || '',
+                    'scope': document.getElementById('scope').value,
+                };
+                localStorage.setItem(LS_KEY_HEADER, JSON.stringify(headerData));
+                generateAndSaveMaturityData(); // <-- ADDED: Also update when header changes
+            }
+
+            function resetState() {
+                if (confirm("Are you sure you want to reset all your progress? This cannot be undone.")) {
+                    localStorage.removeItem(LS_KEY_CARDS);
+                    localStorage.removeItem(LS_KEY_HEADER);
+                    localStorage.removeItem('leanMaturityDashboardSummary'); // <-- ADDED: Clear summary
+                    localStorage.removeItem('maturityCSV'); // <-- ADDED: Clear CSV
+                    // Initialize the page now that the flashcards are already loaded via initial_flashcard_data.js
+                    loadState();
+                    renderGrid();
+                    updateDashboard();
+                    generateAndSaveMaturityData(); // <-- ADDED: Also update after reset
+                    document.getElementById('data-plate').querySelectorAll('input[type="text"], textarea').forEach(input => input.value = '');
+                    document.querySelectorAll('input[name="gs-dashboard-radio"]').forEach(radio => radio.checked = false);
+                    setInitialDate(); // Reset date to today
+                }
+            }
+
+            function setInitialDate() {
+                const dateInput = document.getElementById('assessment-date');
+                if (!dateInput.value) {
+                    dateInput.value = new Date().toISOString().split('T')[0];
+                    saveHeaderState();
+                }
+            }
+
+            // --- UI Rendering ---
+            function generateColorKey() {
+                const keyContainer = document.getElementById('color-key-container');
+                if (!keyContainer) return;
+                const themes = [...new Set(initialFlashcardData.map(c => c.theme))];
+                keyContainer.innerHTML = themes.map(theme => {
+                    if (!theme || theme === 'Default') return '';
+                    const colors = themeColors[theme] || themeColors.Default;
+                    return `<div class="flex items-center gap-2"><div class="w-4 h-4 rounded-full ${colors.light} border border-slate-400/50"></div><span class="text-sm font-medium text-slate-700">${theme}</span></div>`;
+                }).join('');
+            }
+
+            function renderGrid() {
+                grid.innerHTML = '';
+                flashcardData.forEach(card => createCard(card));
+            }
+
+            function createCard(card) {
+                const cardEl = document.createElement('div');
+                cardEl.className = `flashcard p-5 flex flex-col ${themeColors[card.theme]?.light || 'bg-slate-100'}`;
+                if (card.gateway?.toLowerCase() === 'yes') cardEl.classList.add('gateway');
+                if (card.mastered) cardEl.classList.add('mastered');
+                if (card.evaluated) cardEl.classList.add('evaluated');
+                cardEl.dataset.id = card.number;
+
+                const hasComment = card.comments && card.comments.trim() !== '';
+                const commentIcon = hasComment
+                    ? `<div title="Contains comments" class="text-slate-500">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                   </div>`
+                    : '';
+
+                let footerHtml = '';
+                if (card.evaluated) {
+                    footerHtml = `
+                    <div class="flex justify-between items-center mt-auto pt-3 border-t border-slate-300/70">
+                        <div class="flex items-center gap-2">
+                            ${commentIcon}
+                            <span class="text-sm font-medium text-slate-600">Current Rating:</span>
+                        </div>
+                        <span class="font-bold text-xl text-white bg-[#009999] rounded-full flex items-center justify-center w-9 h-9 shadow-md">${card.userRating}</span>
+                    </div>
+                `;
+                } else {
+                    footerHtml = `
+                     <div class="flex justify-end items-center gap-2 mt-auto pt-2 font-medium text-sm ${themeColors[card.theme]?.text} opacity-80">
+                        ${commentIcon}
+                        <span>Click to explore...</span>
+                    </div>
+                `;
+                }
+
+                cardEl.innerHTML = `
+                <div class="flex-grow">
+                    <div class="flex justify-between items-start">
+                        <span class="font-bold text-lg ${themeColors[card.theme]?.text}">${card.theme}</span>
+                        <span class="font-bold text-3xl text-gray-300">#${card.number}</span>
+                    </div>
+                    <h3 class="main-question text-lg font-semibold text-slate-800 mt-3">${card.question}</h3>
+                </div>
+                ${footerHtml}
+                <div class="mastered-overlay status-overlay">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                </div>
+            `;
+
+                cardEl.addEventListener('click', () => openModal(card));
+                grid.appendChild(cardEl);
+            }
+
+            // --- Modal Logic ---
+            function openModal(card) {
+                const themeClasses = themeColors[card.theme] || themeColors.Default;
+
+                const scoringCriteria = (card['5LevelScoring'] || '').split('\n').filter(line => line.trim() !== '');
+                const scoringHtml = scoringCriteria.map(item => {
+                    const parts = item.split(':');
+                    const scoreLabel = parts[0];
+                    const scoreText = parts.slice(1).join(':');
+                    return `<li class="mb-2"><span class="font-semibold">${scoreLabel}:</span> ${scoreText.trim()}</li>`;
+                }).join('');
+
+                let assessmentControlHtml = '';
+                if (['1', '2', '3'].includes(card.number)) {
+                    assessmentControlHtml = `
+                    <div class="flex items-center space-x-6">
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="rating" value="1" class="h-5 w-5 text-red-600 focus:ring-red-500" ${card.userRating === 1 ? 'checked' : ''}>
+                            <span class="font-medium">No (1)</span>
+                        </label>
+                        <label class="flex items-center space-x-2 cursor-pointer">
+                            <input type="radio" name="rating" value="5" class="h-5 w-5 text-green-600 focus:ring-green-500" ${card.userRating === 5 ? 'checked' : ''}>
+                            <span class="font-medium">Yes (5)</span>
+                        </label>
+                    </div>
+                `;
+                } else {
+                    assessmentControlHtml = `
+                    <input id="rating-slider" type="range" min="1" max="5" value="${card.userRating}" class="w-full">
+                    <div class="flex justify-between text-xs text-gray-500 px-1">
+                        <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span>
+                    </div>
+                `;
+                }
+
+                modalContent.innerHTML = `
+                <button id="modal-close-btn" class="modal-close-btn">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8">
+                    <div>
+                        <img src="${card.imageUrl}" alt="Visual for ${card.question}" class="w-full h-48 object-cover rounded-lg mb-4" onerror="this.onerror=null;this.src='https://placehold.co/600x400/e2e8f0/64748b?text=Image+not+found';">
+                        <span class="font-semibold text-sm ${themeClasses.text} py-1 px-3 ${themeClasses.light} rounded-full">${card.theme}</span>
+                        <h2 class="text-2xl font-bold text-gray-900 mt-3">${card.question}</h2>
+                         <div class="mt-4 border-t pt-4">
+                            <h4 class="font-bold text-lg ${themeClasses.text}">Example Guidance</h4>
+                            <p class="text-gray-600 mt-1 text-sm">${(card.guidance || 'No guidance provided.').replace(/\n/g, '<br>')}</p>
+                        </div>
+                    </div>
+                    <div class="flex flex-col">
+                        <div>
+                            <h4 class="font-bold text-lg ${themeClasses.text}">Objective</h4>
+                            <p class="text-gray-600 mt-1 text-sm">${card.objective}</p>
+                            <h4 class="font-bold text-lg ${themeClasses.text} mt-4">Scoring Criteria</h4>
+                            <ul class="text-gray-600 mt-1 text-sm list-none space-y-1">${scoringHtml}</ul>
+                        </div>
+                         <div class="mt-6 border-t pt-4 flex-grow flex flex-col">
+                            <h4 class="font-bold text-lg ${themeClasses.text}">Comments & Actions</h4>
+                            <textarea id="comments-box" class="w-full h-full mt-2 p-2 border-2 border-gray-200 rounded-lg flex-grow text-sm" placeholder="Type your comments or action items here...">${card.comments || ''}</textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 border-t pt-6">
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+                         <div class="md:col-span-1">
+                            <h4 class="font-bold text-lg ${themeClasses.text}">Self-Assessment</h4>
+                            <p class="text-sm text-gray-500 mb-2">How would you rate your team's current maturity on this topic?</p>
+                            ${assessmentControlHtml}
+                        </div>
+                        <div class="md:col-span-1">
+                            <h4 class="font-bold text-lg ${themeClasses.text}">Mark as Mastered</h4>
+                            <p class="text-sm text-gray-500 mb-2">Use this when you understand the concept. The card will be faded on the main screen.</p>
+                            <button id="mastered-btn" class="w-full mt-2 text-white font-semibold py-2 px-4 rounded-lg transition ${card.mastered ? 'bg-gray-500 hover:bg-gray-600' : 'bg-green-500 hover:bg-green-600'}">
+                                ${card.mastered ? 'Mark as Not Mastered' : 'Mark as Mastered'}
+                            </button>
+                        </div>
+                        <div class="md:col-span-1">
+                            <h4 class="font-bold text-lg ${themeClasses.text}">Mark as Evaluated</h4>
+                             <p class="text-sm text-gray-500 mb-2">Use this when you have scored the question. It will get a petrol border and be added to the dashboard.</p>
+                            <button id="evaluated-btn" class="w-full mt-2 text-white font-semibold py-2 px-4 rounded-lg transition ${card.evaluated ? 'bg-gray-500 hover:bg-gray-600' : 'bg-blue-500 hover:bg-blue-600'}">
+                                ${card.evaluated ? 'Mark as Not Evaluated' : 'Mark as Evaluated'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+                modalOverlay.classList.add('visible');
+                document.body.style.overflow = 'hidden';
+
+                const cardToUpdate = flashcardData.find(c => c.number === card.number);
+
+                document.getElementById('modal-close-btn').addEventListener('click', closeModal);
+
+                document.getElementById('mastered-btn').addEventListener('click', () => {
+                    if (cardToUpdate) cardToUpdate.mastered = !cardToUpdate.mastered;
+                    saveCardState();
+                    closeModal();
+                });
+
+                document.getElementById('evaluated-btn').addEventListener('click', () => {
+                    if (cardToUpdate) cardToUpdate.evaluated = !cardToUpdate.evaluated;
+                    saveCardState();
+                    closeModal();
+                });
+
+                const ratingSlider = document.getElementById('rating-slider');
+                if (ratingSlider) {
+                    ratingSlider.addEventListener('change', () => {
+                        if (cardToUpdate) cardToUpdate.userRating = parseInt(ratingSlider.value, 10);
+                        saveCardState();
+                    });
+                }
+
+                document.querySelectorAll('input[name="rating"]').forEach(radio => {
+                    radio.addEventListener('change', (e) => {
+                        if (cardToUpdate) cardToUpdate.userRating = parseInt(e.target.value, 10);
+                        saveCardState();
+                    });
+                });
+
+                const commentsBox = document.getElementById('comments-box');
+                commentsBox.addEventListener('input', () => {
+                    if (cardToUpdate) cardToUpdate.comments = commentsBox.value;
+                    saveCardState();
+                });
+            }
+
+            function closeModal() {
+                renderGrid();
+                modalOverlay.classList.remove('visible');
+                document.body.style.overflow = 'auto';
+            }
+
+            function openDashboard() {
+                updateDashboard();
+                dashboardModalOverlay.classList.add('visible');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeDashboard() {
+                dashboardModalOverlay.classList.remove('visible');
+                document.body.style.overflow = 'auto';
+            }
+
+            function openUserGuide() {
+                userGuideModalOverlay.classList.add('visible');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeUserGuide() {
+                userGuideModalOverlay.classList.remove('visible');
+                document.body.style.overflow = 'auto';
+            }
+
+            function openKeyModal() {
+                keyModalOverlay.classList.add('visible');
+                document.body.style.overflow = 'hidden';
+            }
+
+            function closeKeyModal() {
+                keyModalOverlay.classList.remove('visible');
+                document.body.style.overflow = 'auto';
+            }
+
+            // --- Dashboard Logic & Calculation ---
+            function calculateDashboardData() {
+                // --- SCORING ENGINE VERSION CONTROL ---
+                // Version: Dual-Lock v1.0 (March 2026)
+                // Logic: Raw average compressed to Gateway Ceiling, bounded by Math.min()
+                const scoringEngineVersion = "Dual-Lock v1.0";
+
+                const themes = [...new Set(initialFlashcardData.map(c => c.theme))];
+                const themeData = themes.map(theme => {
+                    const themeCards = flashcardData.filter(c => c.theme === theme);
+                    const totalScore = themeCards.reduce((acc, c) => acc + c.userRating, 0);
+                    const avgScore = themeCards.length > 0 ? totalScore / themeCards.length : 0;
+                    return { theme, avgScore };
+                });
+
+                let operatingLevel = 0;
+                let gatewayWarning = "";
+                const gatewayChecks = {};
+
+                // 1. Determine Gateways and Operating Level (Ceiling)
+                Object.keys(gatewayLevelMapping).forEach(levelName => {
+                    gatewayChecks[levelName] = gatewayLevelMapping[levelName].map(qNum => {
+                        const card = flashcardData.find(c => c.number == qNum);
+                        return {
+                            number: qNum,
+                            passed: card ? card.userRating >= 3 : false
+                        };
+                    });
+                });
+
+                const hasFailed = (levelName) => gatewayChecks[levelName].some(check => !check.passed);
+
+                if (!hasFailed("Lean Awareness")) {
+                    operatingLevel = 1;
+                    if (!hasFailed("Basic Implementation")) {
+                        operatingLevel = 2;
+                        if (!hasFailed("Structured Approach")) {
+                            operatingLevel = 3;
+                            if (!hasFailed("Integrated Lean Culture")) {
+                                operatingLevel = 4;
+                            } else {
+                                gatewayWarning = "Level capped: Integrated Lean Culture gateway(s) not met.";
+                            }
+                        } else {
+                            gatewayWarning = "Level capped: Structured Approach gateway(s) not met.";
+                        }
+                    } else {
+                        gatewayWarning = "Level capped: Basic Implementation gateway(s) not met.";
+                    }
+                } else {
+                    gatewayWarning = "Level capped: Foundational gateway(s) not met.";
+                }
+
+                // 2. Filter valid questions up to the operating level (ceiling)
+                const validQuestions = initialFlashcardData.filter(card => card.maturityLevel <= operatingLevel);
+
+                // 3. Calculate the raw average of ONLY those valid questions
+                let totalValidScore = 0;
+                validQuestions.forEach(card => {
+                    const currentCard = flashcardData.find(c => c.number === card.number);
+                    totalValidScore += currentCard ? currentCard.userRating : 0;
+                });
+
+                // Default to 1 to avoid division by zero or erroneous 0s
+                const rawAverage = validQuestions.length > 0 ? (totalValidScore / validQuestions.length) : 1;
+
+                // 4. The Dual-Lock Logic (Protecting both the bottom and top ends)
+                const compressedScore = operatingLevel + ((rawAverage - 1) / 4);
+                const finalWeightedScore = Math.min(rawAverage, compressedScore);
+
+                const finalMaturityName = maturityLevels[operatingLevel + 1] || maturityLevels[1];
+
+                return { themeData, overallMaturity: finalMaturityName, gatewayWarning, gatewayChecks, weightedScore: finalWeightedScore, scoringEngineVersion };
+            }
+
+            function updateDashboard() {
+                const { themeData, overallMaturity, gatewayWarning, gatewayChecks, weightedScore } = calculateDashboardData();
+
+                document.getElementById('overall-maturity-level').textContent = overallMaturity;
+                document.getElementById('overall-maturity-score').textContent = weightedScore.toFixed(1);
+                document.getElementById('gateway-warning').textContent = gatewayWarning;
+
+                const gatewayStatusTable = document.getElementById('gateway-status-table');
+                gatewayStatusTable.innerHTML = Object.keys(gatewayChecks).map(levelName => {
+                    const checks = gatewayChecks[levelName];
+                    const individualChecksHtml = checks.map(check =>
+                        `<span class="font-semibold gateway-marker ${check.passed ? 'gateway-passed' : 'gateway-failed'}">#${check.number}${check.passed ? '✔' : '✖'}</span>`
+                    ).join(' ');
+
+                    return `
+                    <div class="flex justify-between items-center p-2 rounded bg-gray-50 border">
+                        <span class="font-medium text-gray-800">${levelName}</span>
+                        <div class="flex items-center space-x-3">
+                            ${individualChecksHtml}
+                        </div>
+                    </div>
+                `;
+                }).join('');
+
+                const timelineContainer = document.getElementById('maturity-timeline-container');
+                const percentage = (weightedScore / 4) * 100;
+
+                let stagesHtml = maturityStages.map(stage => {
+                    return `
+                    <div class="flex flex-col items-center text-center w-1/5 pt-12">
+                        <img src="${stage.icon}" alt="${stage.name}" class="h-16 mb-2">
+                        <div class="font-bold text-sm text-[#1B1534]">${stage.name}</div>
+                        <div class="text-xs text-gray-500">${stage.description}</div>
+                    </div>
+                `;
+                }).join('');
+
+                const markerHtml = `
+                <div id="current-score-marker" class="absolute top-0 h-full flex items-center -translate-x-1/2" style="left: ${percentage}%;">
+                    <div class="relative">
+                        <div class="w-4 h-4 bg-white border-2 border-[#009999] rounded-full"></div>
+                        <div id="current-score-label" class="absolute bottom-full mb-2 w-max px-2 py-1 text-xs text-white bg-[#1B1534] rounded-md -translate-x-1/2 opacity-100">${weightedScore.toFixed(1)}</div>
+                        </div>
+                </div>
+            `;
+
+                timelineContainer.innerHTML = `
+                <div class="absolute top-1/2 left-0 w-full h-1 bg-gray-300 -translate-y-1/2"></div>
+                <div id="progress-line" class="absolute top-1/2 left-0 h-1 bg-[#009999]" style="width: ${percentage}%;"></div>
+                <div class="relative flex justify-between items-start">
+                    ${markerHtml}
+                    ${stagesHtml}
+                </div>
+            `;
+
+                // Only draw charts if Chart.js is available.
+                if (typeof Chart !== 'undefined') {
+                    const barCtx = document.getElementById('bar-chart').getContext('2d');
+                    if (barChartInstance) barChartInstance.destroy();
+                    barChartInstance = new Chart(barCtx, {
+                        type: 'bar',
+                        data: {
+                            labels: themeData.map(d => d.theme),
+                            datasets: [{
+                                label: 'Average Score',
+                                data: themeData.map(d => d.avgScore),
+                                backgroundColor: 'rgba(0, 153, 153, 0.6)',
+                                borderColor: 'rgba(0, 153, 153, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            indexAxis: 'y',
+                            scales: { x: { beginAtZero: true, max: 5 } },
+                            plugins: { legend: { display: false } }
+                        }
+                    });
+
+                    const radarCtx = document.getElementById('radar-chart').getContext('2d');
+                    if (radarChartInstance) radarChartInstance.destroy();
+                    radarChartInstance = new Chart(radarCtx, {
+                        type: 'radar',
+                        data: {
+                            labels: themeData.map((d, index) => (index + 1).toString()),
+                            datasets: [{
+                                label: 'Maturity Score',
+                                data: themeData.map(d => d.avgScore),
+                                fill: true,
+                                backgroundColor: 'rgba(0, 153, 153, 0.2)',
+                                borderColor: 'rgb(0, 153, 153)',
+                                pointBackgroundColor: 'rgb(0, 153, 153)',
+                                pointBorderColor: '#fff',
+                                pointHoverBackgroundColor: '#fff',
+                                pointHoverBorderColor: 'rgb(0, 153, 153)'
+                            }]
+                        },
+                        options: {
+                            plugins: {
+                                legend: {
+                                    display: false
+                                }
+                            },
+                            scales: {
+                                r: {
+                                    suggestedMin: 0,
+                                    suggestedMax: 5,
+                                    pointLabels: {
+                                        font: {
+                                            size: 14,
+                                            weight: 'bold'
+                                        }
+                                    },
+                                    ticks: { stepSize: 1 }
+                                }
+                            }
+                        }
+                    });
+
+                    // --- Generate Radar Chart Key ---
+                    const radarKeyContainer = document.getElementById('radar-chart-key');
+                    let keyHtml = '<h4 class="font-semibold text-gray-700 mb-2 mt-4 text-center">Maturity Profile Key</h4><div class="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">';
+                    themeData.forEach((d, index) => {
+                        keyHtml += `<div class="p-1"><span class="font-bold">${index + 1}:</span> ${d.theme}</div>`;
+                    });
+                    keyHtml += '</div>';
+                    radarKeyContainer.innerHTML = keyHtml;
+
+                } // end Chart.js check
+
+
+                const evaluatedList = document.getElementById('evaluated-questions-list');
+                const evaluatedCards = flashcardData.filter(card => card.evaluated);
+                if (evaluatedCards.length > 0) {
+                    const groupedByTheme = evaluatedCards.reduce((acc, card) => {
+                        const theme = card.theme;
+                        if (!acc[theme]) {
+                            acc[theme] = [];
+                        }
+                        acc[theme].push(card);
+                        return acc;
+                    }, {});
+
+                    let html = '';
+                    const originalThemeOrder = [...new Set(initialFlashcardData.map(c => c.theme))];
+
+                    for (const theme of originalThemeOrder) {
+                        if (!groupedByTheme[theme]) continue;
+
+                        const themeClasses = themeColors[theme] || themeColors.Default;
+                        html += `<h4 class="text-md font-bold ${themeClasses.text} py-1 px-2 ${themeClasses.light} rounded-md mb-2 mt-3">${theme}</h4>`;
+
+                        html += groupedByTheme[theme].map(card => {
+                            const gatewayMarker = card.gateway === 'Yes' ? '<span class="text-amber-500 font-bold ml-2" title="Gateway Question">★</span>' : '';
+                            const commentHtml = card.comments
+                                ? `<p class="text-xs italic text-gray-600 mt-1 pl-4 border-l-2 border-gray-300">${card.comments.replace(/\n/g, '<br>')}</p>`
+                                : '';
+                            return `
+                            <div class="text-sm text-gray-800 pb-2 border-b border-gray-200 last:border-b-0 mb-2">
+                                <div class="flex justify-between items-start">
+                                    <p class="font-bold pr-4">#${card.number}: ${card.question}${gatewayMarker}</p>
+                                    <span class="font-bold text-base text-white bg-[#009999] rounded-full flex items-center justify-center w-6 h-6 flex-shrink-0">${card.userRating}</span>
+                                </div>
+                                ${commentHtml}
+                             </div>`;
+                        }).join('');
+                    }
+                    evaluatedList.innerHTML = html;
+
+                } else {
+                    evaluatedList.innerHTML = `<p class="text-sm text-gray-500 text-center p-2">No questions marked as evaluated yet.</p>`;
+                }
+            }
+
+            // --- Exporting Logic (JSON) ---
+            function exportToJson() {
+                const headerData = JSON.parse(localStorage.getItem(LS_KEY_HEADER)) || {};
+                const orgName = headerData['org-name']?.trim().replace(/[^a-zA-Z0-9]/g, '_') || 'Org';
+                const assessmentDate = headerData['assessment-date']?.trim().replace(/[^a-zA-Z0-9]/g, '-') || 'Date';
+                const filename = `${orgName}_${assessmentDate}_Lean_Assessment.json`;
+
+                const { overallMaturity, weightedScore } = calculateDashboardData();
+
+                const exportData = {
+                    metadata: {
+                        exportDate: new Date().toISOString(),
+                        scoringEngine: typeof SCORING_ENGINE_VERSION !== 'undefined' ? SCORING_ENGINE_VERSION : "Legacy",
+                        calculatedScore: weightedScore.toFixed(1),
+                        calculatedMaturity: overallMaturity
+                    },
+                    header: headerData,
+                    cards: flashcardData
+                };
+
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+                const downloadAnchorNode = document.createElement('a');
+                downloadAnchorNode.setAttribute("href", dataStr);
+                downloadAnchorNode.setAttribute("download", filename);
+                document.body.appendChild(downloadAnchorNode); // required for firefox
+                downloadAnchorNode.click();
+                downloadAnchorNode.remove();
+            }
+
+            async function exportDashboardToPdf() {
+                const headerData = JSON.parse(localStorage.getItem(LS_KEY_HEADER)) || {};
+                const orgName = headerData['org-name']?.trim().replace(/[^a-zA-Z0-9]/g, '_') || 'Org';
+                const assessmentDate = headerData['assessment-date']?.trim().replace(/[^a-zA-Z0-9]/g, '-') || 'Date';
+                const filename = `${orgName}_${assessmentDate}_Report.pdf`;
+
+                const dashboardEl = document.getElementById('dashboard-to-export');
+                const loader = document.createElement('div');
+                loader.innerHTML = `<div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; display: flex; align-items: center; justify-content: center; color: white; font-size: 24px;">Generating PDF... Please wait.</div>`;
+                document.body.appendChild(loader);
+
+                try {
+                    const canvas = await html2canvas(dashboardEl, {
+                        scale: 2,
+                        backgroundColor: '#ffffff',
+                        useCORS: true
+                    });
+                    const imgData = canvas.toDataURL('image/png');
+                    const imgWidth = canvas.width;
+                    const imgHeight = canvas.height;
+
+                    const pdf = new jsPDF({
+                        orientation: 'portrait',
+                        unit: 'pt',
+                        format: 'a4'
+                    });
+
+                    const pdfWidth = pdf.internal.pageSize.getWidth();
+                    const pdfHeight = pdf.internal.pageSize.getHeight();
+                    const margin = 40;
+
+                    const ratio = imgWidth / imgHeight;
+                    let newImgWidth = pdfWidth - (margin * 2);
+                    let newImgHeight = newImgWidth / ratio;
+
+                    if (newImgHeight > pdfHeight - (margin * 2)) {
+                        newImgHeight = pdfHeight - (margin * 2);
+                        newImgWidth = newImgHeight * ratio;
+                    }
+
+                    const x = (pdfWidth - newImgWidth) / 2;
+                    const y = margin;
+
+                    pdf.addImage(imgData, 'PNG', x, y, newImgWidth, newImgHeight);
+
+                    pdf.addPage('a4', 'portrait');
+
+                    const assessmentName = headerData['assessment-name'] || 'Lean Maturity Assessment';
+
+                    const addHeader = (pdfInstance) => {
+                        pdfInstance.setFontSize(18);
+                        pdfInstance.setFont(undefined, 'bold');
+                        pdfInstance.text('Detailed Assessment Report', pdfInstance.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
+
+                        pdfInstance.setFontSize(10);
+                        pdfInstance.setFont(undefined, 'normal');
+                        pdfInstance.text(`${assessmentName}`, margin, 60);
+                        pdfInstance.text(`Date: ${assessmentDate}`, pdfInstance.internal.pageSize.getWidth() - margin, 60, { align: 'right' });
+                        pdfInstance.setLineWidth(0.5);
+                        pdfInstance.line(margin, 65, pdfInstance.internal.pageSize.getWidth() - margin, 65);
+                    };
+
+                    addHeader(pdf);
+
+                    let yPos = 85;
+                    const pageHeight = pdf.internal.pageSize.height;
+                    const contentWidth = pdf.internal.pageSize.width - (margin * 2);
+                    const lineHeight = 12;
+
+                    const allCardsGroupedByTheme = flashcardData.reduce((acc, card) => {
+                        const theme = card.theme;
+                        if (!acc[theme]) {
+                            acc[theme] = [];
+                        }
+                        acc[theme].push(card);
+                        return acc;
+                    }, {});
+
+                    const originalThemeOrder = [...new Set(initialFlashcardData.map(c => c.theme))];
+
+                    for (const theme of originalThemeOrder) {
+                        if (!allCardsGroupedByTheme[theme]) continue;
+
+                        if (yPos + 30 > pageHeight - margin) {
+                            pdf.addPage('a4', 'portrait');
+                            addHeader(pdf);
+                            yPos = 85;
+                        }
+
+                        pdf.setFontSize(14);
+                        pdf.setFont(undefined, 'bold');
+                        pdf.setTextColor(50, 50, 50);
+                        pdf.text(theme, margin, yPos);
+                        yPos += lineHeight * 2;
+
+                        for (const card of allCardsGroupedByTheme[theme]) {
+                            const gatewayMarker = card.gateway === 'Yes' ? ' (Gateway)' : '';
+                            const questionText = `Q: ${card.question}${gatewayMarker}`;
+                            const commentText = card.comments ? `Comment: ${card.comments}` : '';
+
+                            const questionLines = pdf.splitTextToSize(questionText, contentWidth - 40);
+                            const commentLines = card.comments ? pdf.splitTextToSize(commentText, contentWidth - 40) : [];
+
+                            const sectionHeight = (questionLines.length * lineHeight) + (commentLines.length * lineHeight) + 30;
+
+                            if (yPos + sectionHeight > pageHeight - margin) {
+                                pdf.addPage('a4', 'portrait');
+                                addHeader(pdf);
+                                yPos = 85;
+                            }
+
+                            pdf.setFontSize(11);
+                            pdf.setFont(undefined, 'bold');
+                            pdf.setTextColor(0, 0, 0);
+                            pdf.text(`#${card.number}`, margin, yPos);
+                            pdf.text(`Score: ${card.userRating}/5`, pdf.internal.pageSize.getWidth() - margin, yPos, { align: 'right' });
+                            yPos += lineHeight * 1.5;
+
+                            pdf.setFontSize(10);
+                            pdf.setFont(undefined, 'normal');
+                            pdf.text(questionLines, margin + 10, yPos);
+                            yPos += questionLines.length * lineHeight;
+
+                            if (card.comments) {
+                                yPos += lineHeight / 2;
+                                pdf.setFont(undefined, 'italic');
+                                pdf.setTextColor(80, 80, 80);
+                                pdf.text(commentLines, margin + 10, yPos);
+                                yPos += commentLines.length * lineHeight;
+                                pdf.setTextColor(0, 0, 0);
+                            }
+
+                            yPos += lineHeight * 0.75;
+                            pdf.setLineWidth(0.2);
+                            pdf.setDrawColor(200, 200, 200);
+                            pdf.line(margin, yPos, pdf.internal.pageSize.getWidth() - margin, yPos);
+                            yPos += lineHeight * 1.25;
+                        }
+                    }
+
+                    pdf.save(filename);
+
+                } catch (error) {
+                    console.error("Error generating PDF:", error);
+                    alert("There was an error creating the PDF. Please try again.");
+                } finally {
+                    document.body.removeChild(loader);
+                }
+            }
+
+            function importFromJson(file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    try {
+                        const importedData = JSON.parse(event.target.result);
+                        if (confirm("This will overwrite your current progress. Are you sure you want to import this JSON file?")) {
+
+                            if (importedData.header) {
+                                localStorage.setItem(LS_KEY_HEADER, JSON.stringify(importedData.header));
+                                Object.keys(importedData.header).forEach(key => {
+                                    const input = document.getElementById(key);
+                                    if (input) {
+                                        input.value = importedData.header[key];
+                                    } else {
+                                        const radio = document.querySelector(`input[name="${key}-radio"][value="${importedData.header[key]}"]`);
+                                        if (radio) radio.checked = true;
+                                    }
+                                });
+                            }
+
+                            if (importedData.cards && Array.isArray(importedData.cards)) {
+                                flashcardData.forEach(card => {
+                                    const importedCard = importedData.cards.find(c => c.number == card.number);
+                                    if (importedCard) {
+                                        card.userRating = importedCard.userRating;
+                                        card.mastered = importedCard.mastered;
+                                        card.evaluated = importedCard.evaluated;
+                                        card.comments = importedCard.comments || '';
+                                    }
+                                });
+                                saveCardState();
+                            }
+
+                            renderGrid();
+                            updateDashboard();
+                            alert('Successfully imported JSON assessment data!');
+                        }
+                    } catch (error) {
+                        console.error("Error parsing JSON:", error);
+                        alert(`Failed to import JSON. Error: ${error.message}`);
+                    }
+                };
+                reader.onerror = () => alert('Error reading the file.');
+                reader.readAsText(file);
+            }
+
+            function importFromCsv(file) {
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    const csv = event.target.result;
+                    // Save imported CSV to localStorage so analysis tool can access it
+                    try {
+                        localStorage.setItem('maturityCSV', csv);
+                    } catch (e) {
+                        console.warn('Unable to store imported CSV in localStorage:', e);
+                    }
+                    try {
+                        const lines = csv.split('\n').filter(line => line.trim() !== '');
+
+                        const headerData = {};
+                        const parseCsvRow = (row) => {
+                            const result = [];
+                            let current = '';
+                            let inQuotes = false;
+                            for (let i = 0; i < row.length; i++) {
+                                const char = row[i];
+                                if (char === '"' && inQuotes && i + 1 < row.length && row[i + 1] === '"') {
+                                    current += '"';
+                                    i++;
+                                } else if (char === '"') {
+                                    inQuotes = !inQuotes;
+                                } else if (char === ',' && !inQuotes) {
+                                    result.push(current);
+                                    current = '';
+                                } else {
+                                    current += char;
+                                }
+                            }
+                            result.push(current);
+                            return result.map(val => val.replace(/^"|"$/g, '').replace(/""/g, '"'));
+                        };
+
+                        let parts = parseCsvRow(lines[0]);
+                        if (parts.length >= 4) {
+                            headerData['assessment-name'] = parts[1];
+                            headerData['org-name'] = parts[3];
+                        }
+                        parts = parseCsvRow(lines[1]);
+                        if (parts.length >= 2) headerData['assessment-date'] = parts[1];
+                        parts = parseCsvRow(lines[2]);
+                        if (parts.length >= 4) {
+                            headerData['assessed-by'] = parts[1];
+                            headerData['local-pm'] = parts[3];
+                        }
+                        parts = parseCsvRow(lines[3]);
+                        if (parts.length >= 2) headerData['gs-dashboard'] = parts[1];
+                        parts = parseCsvRow(lines[4]);
+                        if (parts.length >= 2) headerData['scope'] = parts[1];
+
+                        let dataStartIndex = lines.findIndex(line => line.trim().includes('"Number","Question","Rating","Mastered","Evaluated","Comments"'));
+
+                        if (dataStartIndex === -1) {
+                            throw new Error("CSV header row not found. The file may be in the wrong format.");
+                        }
+
+                        const cardLines = lines.slice(dataStartIndex + 1);
+
+                        const importedCardData = {};
+
+                        cardLines.forEach(line => {
+                            if (!line.trim()) return;
+                            const cardParts = parseCsvRow(line);
+                            if (cardParts.length < 6) return;
+
+                            const number = cardParts[0];
+                            importedCardData[number] = {
+                                userRating: parseInt(cardParts[2], 10) || 1,
+                                mastered: cardParts[3] === 'Yes',
+                                evaluated: cardParts[4] === 'Yes',
+                                comments: cardParts[5] || ''
+                            };
+                        });
+
+                        if (confirm("This will overwrite your current progress. Are you sure you want to import?")) {
+                            Object.keys(headerData).forEach(key => {
+                                const input = document.getElementById(key);
+                                if (input) {
+                                    input.value = headerData[key];
+                                } else {
+                                    const radio = document.querySelector(`input[name="${key}-radio"][value="${headerData[key]}"]`);
+                                    if (radio) radio.checked = true;
+                                }
+                            });
+                            saveHeaderState();
+
+                            flashcardData.forEach(card => {
+                                const imported = importedCardData[card.number];
+                                if (imported) {
+                                    card.userRating = imported.userRating;
+                                    card.mastered = imported.mastered;
+                                    card.evaluated = imported.evaluated;
+                                    card.comments = imported.comments;
+                                }
+                            });
+                            saveCardState();
+
+                            renderGrid();
+                            updateDashboard();
+                            alert('Successfully imported assessment data!');
+                        }
+
+                    } catch (error) {
+                        console.error("Error parsing CSV:", error);
+                        alert(`Failed to import CSV. Please ensure it is in the correct format and try again. Error: ${error.message}`);
+                    }
+                };
+                reader.onerror = () => {
+                    alert('Error reading the file.');
+                };
+                reader.readAsText(file);
+            }
+
+            function setupHeaderListeners() {
+                document.getElementById('data-plate').querySelectorAll('input, textarea').forEach(input => {
+                    input.addEventListener('input', saveHeaderState);
+                    input.addEventListener('change', saveHeaderState);
+                });
+                document.querySelectorAll('input[name="gs-dashboard-radio"]').forEach(radio => {
+                    radio.addEventListener('change', saveHeaderState);
+                });
+            }
+
+            // --- Main Execution ---
+            try {
+                if (!grid || !resetButton || !exportButton) throw new Error("Core HTML elements missing.");
+
+                const importButton = document.getElementById('import-btn');
+                const importInput = document.getElementById('file-import-input');
+
+                loadState();
+                setInitialDate();
+                generateColorKey();
+                renderGrid();
+                updateDashboard();
+                generateAndSaveMaturityData();
+                setupHeaderListeners();
+
+                resetButton.addEventListener('click', resetState);
+                exportButton.addEventListener('click', exportToJson);
+
+                importButton.addEventListener('click', () => importInput.click());
+
+                // Smart router for imports
+                importInput.addEventListener('change', (e) => {
+                    if (e.target.files.length > 0) {
+                        const file = e.target.files[0];
+                        if (file.name.toLowerCase().endsWith('.json')) {
+                            importFromJson(file);
+                        } else if (file.name.toLowerCase().endsWith('.csv')) {
+                            importFromCsv(file);
+                        } else {
+                            alert("Unsupported file type. Please upload a .json or legacy .csv file.");
+                        }
+                        // Reset input so the same file can be selected again if needed
+                        e.target.value = '';
+                    }
+                });
+
+                dashboardButton.addEventListener('click', openDashboard);
+                document.getElementById('dashboard-modal-close-btn').addEventListener('click', closeDashboard);
+
+                exportPdfButton.addEventListener('click', () => {
+                    exportDashboardToPdf();
+                });
+
+                userGuideButton.addEventListener('click', openUserGuide);
+                document.getElementById('user-guide-modal-close-btn').addEventListener('click', closeUserGuide);
+
+                viewKeyButton.addEventListener('click', openKeyModal);
+                keyModalCloseButton.addEventListener('click', closeKeyModal);
+                keyModalOverlay.addEventListener('click', (e) => {
+                    if (e.target === keyModalOverlay) closeKeyModal();
+                });
+
+                modalOverlay.addEventListener('click', (e) => {
+                    if (e.target === modalOverlay) closeModal();
+                });
+                dashboardModalOverlay.addEventListener('click', (e) => {
+                    if (e.target === dashboardModalOverlay) closeDashboard();
+                });
+                userGuideModalOverlay.addEventListener('click', (e) => {
+                    if (e.target === userGuideModalOverlay) closeUserGuide();
+                });
+            } catch (error) {
+                console.error("Failed to initialize:", error);
+                grid.innerHTML = `<p class="text-red-500 col-span-full">${error.message}</p>`;
+            }
+        });
+    </script>
+    <!-- Proper next step navigation: placed outside of the script and body content so it renders correctly -->
+    <div class="my-8 text-center">
+        <!-- Use an anchor with target to ensure navigation works inside the iframe -->
+        <a href="roadmap.html" target="contentFrame" class="px-6 py-3 text-lg font-semibold rounded-lg shadow-md"
+            style="background-color: var(--se-blue3); color: var(--white); text-decoration: none;">
+            Next Step: View Roadmap
+        </a>
+    </div>
+
+</body>
+
+</html>
