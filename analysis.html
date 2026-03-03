@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Lean Maturity Analysis</title>
-    <link rel="stylesheet" href="assets/fonts.css">
-    <link rel="stylesheet" href="assets/brand.css">
-    <link rel="stylesheet" href="styles.css">
-    <script src="assets/tailwind.js"></script>
+    <link rel="stylesheet" href="../assets/fonts.css">
+    <link rel="stylesheet" href="../assets/brand.css">
+    <link rel="stylesheet" href="../styles.css">
+    <script src="../assets/tailwind.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
@@ -24,20 +25,26 @@
             background-color: #4D217A;
             color: var(--se-gray0);
         }
+
         .accordion-content {
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.5s ease-in-out;
         }
-        .accordion-header.active + .accordion-content {
-            max-height: 2000px; /* Increased for potentially longer content */
+
+        .accordion-header.active+.accordion-content {
+            max-height: 2000px;
+            /* Increased for potentially longer content */
         }
+
         .rotate-180 {
             transform: rotate(180deg);
         }
+
         .transition-transform {
             transition: transform 0.3s ease;
         }
+
         #csvFileInput {
             width: 0.1px;
             height: 0.1px;
@@ -46,9 +53,11 @@
             position: absolute;
             z-index: -1;
         }
+
         #csvFileLabel {
             cursor: pointer;
         }
+
         .modal-overlay {
             position: fixed;
             top: 0;
@@ -64,10 +73,12 @@
             visibility: hidden;
             transition: opacity 0.3s ease, visibility 0.3s ease;
         }
+
         .modal-overlay.visible {
             opacity: 1;
             visibility: visible;
         }
+
         .modal-content {
             background: white;
             padding: 2.5rem;
@@ -80,16 +91,21 @@
             transition: transform 0.3s ease;
             position: relative;
         }
+
         .modal-overlay.visible .modal-content {
             transform: scale(1);
         }
+
         @media print {
             body * {
                 visibility: hidden;
             }
-            #report-content, #report-content * {
+
+            #report-content,
+            #report-content * {
                 visibility: visible;
             }
+
             #report-content {
                 position: absolute;
                 left: 0;
@@ -98,6 +114,7 @@
         }
     </style>
 </head>
+
 <body class="text-gray-800">
 
     <div class="container mx-auto p-4 md:p-8">
@@ -134,28 +151,44 @@
         </div>
 
         <div class="bg-white rounded-xl shadow-md overflow-hidden mb-8 border border-gray-200">
-            <div id="guide-accordion-header" class="accordion-header p-5 cursor-pointer flex justify-between items-center bg-gray-100">
+            <div id="guide-accordion-header"
+                class="accordion-header p-5 cursor-pointer flex justify-between items-center bg-gray-100">
                 <h2 class="text-xl font-semibold text-black">How to Use This Tool</h2>
-                <svg class="w-6 h-6 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                <svg class="w-6 h-6 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
             </div>
             <div class="accordion-content">
                 <div class="p-6 border-t border-gray-200">
                     <ol class="list-decimal list-inside space-y-3 text-gray-700">
                         <li>
-                            <strong class="font-semibold text-gray-900">Upload Your Data:</strong> Click the "Upload Assessment CSV" button and select your completed assessment file. The report will generate automatically, and assessment details will be populated.
+                            <strong class="font-semibold text-gray-900">Upload Your Data:</strong> Click the "Upload
+                            Assessment CSV" button and select your completed assessment file. The report will generate
+                            automatically, and assessment details will be populated.
                         </li>
                         <li>
-                            <strong class="font-semibold text-gray-900">Add Analysis Details:</strong> Enter the names of the analysts and the date of analysis in the "Analysis Details" section. This is saved automatically.
+                            <strong class="font-semibold text-gray-900">Add Analysis Details:</strong> Enter the names
+                            of the analysts and the date of analysis in the "Analysis Details" section. This is saved
+                            automatically.
                         </li>
                         <li>
-                            <strong class="font-semibold text-gray-900">Review & Plan Actions:</strong> Click on each roadmap stage to expand it. For stages marked "Opportunity for Growth" or "Foundation Focus," accept the proposed action and add your own comments and specific next steps.
+                            <strong class="font-semibold text-gray-900">Review & Plan Actions:</strong> Click on each
+                            roadmap stage to expand it. For stages marked "Opportunity for Growth" or "Foundation
+                            Focus," accept the proposed action and add your own comments and specific next steps.
                         </li>
                         <li>
-                            <strong class="font-semibold text-gray-900">Consolidate & Export:</strong> Once you're done, click "View Action Report" to see a summary. From there, or from the main page, you can export your reports to PDF for sharing. Both reports will include the assessment and analysis details.
+                            <strong class="font-semibold text-gray-900">Consolidate & Export:</strong> Once you're done,
+                            click "View Action Report" to see a summary. From there, or from the main page, you can
+                            export your reports to PDF for sharing. Both reports will include the assessment and
+                            analysis details.
                         </li>
                     </ol>
                     <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-                        <p><strong class="font-semibold">Important Note:</strong> This tool provides a preliminary analysis based on a standardized logic model. Think of it as a first draft—it's essential for your team to review, challenge, and enrich these findings with your unique organizational context.</p>
+                        <p><strong class="font-semibold">Important Note:</strong> This tool provides a preliminary
+                            analysis based on a standardized logic model. Think of it as a first draft—it's essential
+                            for your team to review, challenge, and enrich these findings with your unique
+                            organizational context.</p>
                     </div>
                 </div>
             </div>
@@ -163,10 +196,15 @@
 
         <div class="bg-white p-6 rounded-xl shadow-md mb-8 border-2 border-dashed border-blue-400">
             <h2 class="text-xl font-semibold text-center mb-4">Optional: Co-pilot Analysis</h2>
-            <p class="text-center text-gray-600 max-w-2xl mx-auto mb-4">For a deeper, AI-driven analysis of your results, you can use the Co-pilot. First, export your results using the "Export Results (CSV)" button From the maturity assessment, then open the Co-pilot and paste your data.</p>
-            <p class="text-center text-xs text-gray-500 mb-4">Note: This will open in a new browser window and requires a Co-pilot license to access.</p>
+            <p class="text-center text-gray-600 max-w-2xl mx-auto mb-4">For a deeper, AI-driven analysis of your
+                results, you can use the Co-pilot. First, export your results using the "Export Results (CSV)" button
+                From the maturity assessment, then open the Co-pilot and paste your data.</p>
+            <p class="text-center text-xs text-gray-500 mb-4">Note: This will open in a new browser window and requires
+                a Co-pilot license to access.</p>
             <div class="text-center">
-                <a href="https://m365.cloud.microsoft:443/chat/?titleId=T_95c308b4-f759-ee04-97e8-758ad12bca98" target="_blank" rel="noopener noreferrer" class="inline-block bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300">
+                <a href="https://m365.cloud.microsoft:443/chat/?titleId=T_95c308b4-f759-ee04-97e8-758ad12bca98"
+                    target="_blank" rel="noopener noreferrer"
+                    class="inline-block bg-green-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300">
                     Launch Co-pilot Analysis
                 </a>
             </div>
@@ -176,7 +214,8 @@
             <h2 class="text-xl font-semibold text-center mb-4">1. Generate Your Assessment</h2>
             <div class="flex flex-col items-center justify-center">
                 <input type="file" id="csvFileInput" accept=".csv">
-                <label for="csvFileInput" id="csvFileLabel" class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300 text-center">
+                <label for="csvFileInput" id="csvFileLabel"
+                    class="bg-blue-600 text-white font-semibold py-2 px-6 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300 text-center">
                     Upload Assessment CSV
                 </label>
                 <p id="fileName" class="text-sm text-gray-500 mt-3"></p>
@@ -195,12 +234,15 @@
                 <h2 class="text-xl font-semibold text-center mb-4 border-b pb-2">2. Add Analysis Details</h2>
                 <div class="space-y-4">
                     <div>
-                        <label for="analysed-by" class="block text-sm font-medium text-gray-700">Analysed By (one name per line)</label>
-                        <textarea id="analysed-by" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"></textarea>
+                        <label for="analysed-by" class="block text-sm font-medium text-gray-700">Analysed By (one name
+                            per line)</label>
+                        <textarea id="analysed-by" rows="3"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"></textarea>
                     </div>
                     <div>
                         <label for="analysis-date" class="block text-sm font-medium text-gray-700">Analysis Date</label>
-                        <input type="date" id="analysis-date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
+                        <input type="date" id="analysis-date"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm">
                     </div>
                 </div>
             </div>
@@ -208,13 +250,27 @@
 
 
         <div class="text-center mb-6 flex flex-wrap justify-center gap-2">
-            <button id="expandAll" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300">Expand All</button>
-            <button id="collapseAll" class="bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-400 transition-colors duration-300">Collapse All</button>
-            <button id="viewReportBtn" class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300">View Action Report</button>
-            <button id="exportFullReportBtn" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition-colors duration-300">Export Full Report (PDF)</button>
-            <button id="exportCsvBtn" class="bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-purple-700 transition-colors duration-300">Export Results (CSV)</button>
-            <button id="exportPptBtn" class="bg-orange-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-orange-600 transition-colors duration-300">Export to PowerPoint</button>
-            <button id="resetBtn" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition-colors duration-300">Reset All Data</button>
+            <button id="expandAll"
+                class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition-colors duration-300">Expand
+                All</button>
+            <button id="collapseAll"
+                class="bg-gray-300 text-gray-800 font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-gray-400 transition-colors duration-300">Collapse
+                All</button>
+            <button id="viewReportBtn"
+                class="bg-green-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-green-700 transition-colors duration-300">View
+                Action Report</button>
+            <button id="exportFullReportBtn"
+                class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition-colors duration-300">Export
+                Full Report (PDF)</button>
+            <button id="exportCsvBtn"
+                class="bg-purple-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-purple-700 transition-colors duration-300">Export
+                Results (CSV)</button>
+            <button id="exportPptBtn"
+                class="bg-orange-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-orange-600 transition-colors duration-300">Export
+                to PowerPoint</button>
+            <button id="resetBtn"
+                class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition-colors duration-300">Reset
+                All Data</button>
         </div>
 
         <div id="accordionContainer" class="space-y-4">
@@ -227,7 +283,11 @@
     <div id="report-modal-overlay" class="modal-overlay">
         <div id="report-modal-content" class="modal-content">
             <button id="report-modal-close-btn" class="modal-close-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
             </button>
             <div id="report-to-export">
                 <div id="report-header-placeholder"></div>
@@ -235,15 +295,21 @@
                 <div id="report-content" class="space-y-6"></div>
             </div>
             <div class="mt-4 text-center">
-                <button id="exportActionReportBtn" class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition-colors duration-300">Export Action Report (PDF)</button>
+                <button id="exportActionReportBtn"
+                    class="bg-red-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-red-700 transition-colors duration-300">Export
+                    Action Report (PDF)</button>
             </div>
         </div>
     </div>
-    
+
     <div id="logic-modal-overlay" class="modal-overlay">
         <div id="logic-modal-content" class="modal-content max-w-4xl">
-             <button id="logic-modal-close-btn" class="modal-close-btn">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            <button id="logic-modal-close-btn" class="modal-close-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
             </button>
             <div id="logic-content"></div>
         </div>
@@ -471,7 +537,7 @@
                     }
                 }
             ];
-            
+
             // --- DOM ELEMENT REFERENCES ---
             const fileInput = document.getElementById('csvFileInput');
             const fileNameDisplay = document.getElementById('fileName');
@@ -556,7 +622,7 @@
                 statusMessage.className = 'text-sm font-semibold mt-2 text-blue-600';
 
                 const reader = new FileReader();
-                reader.onload = function(e) {
+                reader.onload = function (e) {
                     try {
                         const csvText = e.target.result;
                         localStorage.setItem('maturityAssessmentCSV', csvText); // Save CSV to localStorage
@@ -569,17 +635,17 @@
                 };
                 reader.readAsText(file);
             }
-            
+
             /**
              * Parses CSV text, extracts data, and runs the analysis workflow.
              */
             function processCsvText(text) {
                 try {
                     const rows = text.split('\n');
-                    
+
                     assessmentMetadata = parseCsvMetadata(rows);
                     displayAssessmentDetails(assessmentMetadata);
-                    
+
                     const data = parseCsvData(rows);
                     if (data.length === 0) {
                         throw new Error("No valid data rows found in CSV. Check for 'Number', 'Question', and 'Rating' columns.");
@@ -597,7 +663,7 @@
                     statusMessage.className = 'text-sm font-semibold mt-2 text-red-600';
                 }
             }
-            
+
             /**
              * Evaluates the verdict for a given stage based on rules from the config file.
              * @param {object} logicRules - The 'logic' object from the config for a stage.
@@ -614,8 +680,8 @@
                             case '<=': return rating <= rule.value;
                             case '>=': return rating >= rule.value;
                             case '==': return rating == rule.value;
-                            case '<':  return rating < rule.value;
-                            case '>':  return rating > rule.value;
+                            case '<': return rating < rule.value;
+                            case '>': return rating > rule.value;
                             default: return false;
                         }
                     });
@@ -638,7 +704,7 @@
              */
             function runEnhancedAssessmentLogic(data, config) {
                 const getQuestion = (qNum) => data.find(row => row.qNum === qNum) || { rating: 0, qNum: qNum, question: `Question #${qNum} not found`, comments: 'N/A' };
-                
+
                 // Process all stages except the special 'capstone' case first
                 const standardStages = config.filter(stage => stage.id !== 'collaborative-growth');
                 const results = standardStages.map(stage => {
@@ -664,7 +730,7 @@
                     } else if (results.some(r => r.verdict === 'Opportunity for Growth') || warningQuestions) {
                         capstoneVerdict = 'Opportunity for Growth';
                     }
-                    
+
                     results.push({
                         ...capstoneConfig,
                         diagnostics: capstoneConfig.diagnosticQ.map(qNum => getQuestion(qNum)),
@@ -695,7 +761,7 @@
                             </li>
                         `).join('')
                         : `<p class="italic text-gray-600 mb-4">This review uses the results of all previous reviews.</p>`;
-                    
+
                     const actionAcceptHTML = result.verdict !== 'Pass' ? `
                         <div class="mt-4 flex items-center">
                             <input type="checkbox" id="accept-${result.id}" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500" ${result.actionAccepted ? 'checked' : ''}>
@@ -750,7 +816,7 @@
                     `;
                     accordionContainer.innerHTML += elementHTML;
                 });
-                
+
                 setupAccordionListeners();
                 setupActionListeners();
                 computeAndStoreSummary(results);
@@ -828,7 +894,7 @@
                     window.location.reload(); // Easiest way to reset the whole state
                 }
             }
-            
+
             // --- CSV PARSING UTILITIES ---
 
             function parseCsvMetadata(rows) {
@@ -850,11 +916,11 @@
                 });
                 return metadata;
             }
-            
+
             function parseCsvData(rows) {
                 let headerRowIndex = rows.findIndex(row => row.includes("Number") && row.includes("Question") && row.includes("Rating"));
                 if (headerRowIndex === -1) return [];
-                
+
                 const headerRow = rows[headerRowIndex].match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g).map(h => h.trim().replace(/"/g, ''));
                 const numberIndex = headerRow.findIndex(h => h.includes("Number"));
                 const questionIndex = headerRow.findIndex(h => h.includes("Question"));
@@ -875,7 +941,7 @@
             }
 
             // --- UI & INTERACTION HANDLERS ---
-            
+
             function setupAccordionListeners() {
                 const accordionHeaders = document.querySelectorAll('#accordionContainer .accordion-header');
                 accordionHeaders.forEach(header => {
@@ -933,7 +999,7 @@
 
                 localStorage.setItem('leanAnalysisSummary', JSON.stringify(summary));
             }
-            
+
             function openReportModal() {
                 if (assessmentDataStore.length === 0) {
                     alert("Please upload and process an assessment file first.");
@@ -947,19 +1013,19 @@
 
                 const assessmentDetails = document.getElementById('assessment-details-container').cloneNode(true);
                 const analysisDetails = document.getElementById('analysis-details-container').cloneNode(true);
-                
+
                 analysisDetails.querySelectorAll('textarea, input').forEach(el => {
                     const p = document.createElement('p');
                     p.className = 'text-sm text-gray-700';
                     p.innerHTML = `<strong>${el.previousElementSibling.textContent}:</strong> ${el.value.replace(/\n/g, ', ') || 'N/A'}`;
                     el.parentElement.replaceWith(p);
                 });
-                
+
                 reportHeaderPlaceholder.appendChild(assessmentDetails);
                 reportHeaderPlaceholder.appendChild(analysisDetails);
 
                 const acceptedActions = assessmentDataStore.filter(r => r.actionAccepted || (r.oeAction && r.oeAction.trim() !== ''));
-                
+
                 if (acceptedActions.length === 0) {
                     reportContent.innerHTML = '<p class="text-center text-gray-600">No actions have been accepted yet. Go through the report and accept proposed actions or add your own.</p>';
                 } else {
@@ -967,11 +1033,11 @@
                         'Opportunity for Growth': { color: 'yellow', icon: '💡' },
                         'Foundation Focus': { color: 'red', icon: '🎯' }
                     };
-                    
+
                     let html = acceptedActions.map(action => {
                         const { color, icon } = verdictMap[action.verdict] || { color: 'gray', icon: '❓' };
                         const finalAction = (action.oeAction && action.oeAction.trim() !== '') ? action.oeAction : action.recommendation;
-                        
+
                         return `
                             <div class="p-4 bg-gray-50 rounded-lg border border-gray-200">
                                 <h3 class="text-lg font-bold text-gray-800">${action.title}</h3>
@@ -993,15 +1059,15 @@
                 reportModalOverlay.classList.add('visible');
             }
 
-            function closeReportModal() { 
-                reportModalOverlay.classList.remove('visible'); 
+            function closeReportModal() {
+                reportModalOverlay.classList.remove('visible');
             }
 
             function openLogicModal(result) {
                 if (!result) return;
-                
+
                 const logicContent = document.getElementById('logic-content');
-                
+
                 const renderConditions = (conditions) => {
                     if (!conditions || conditions.length === 0) return '<li>None defined.</li>';
                     return conditions.map(rule => `<li>Question <strong>#${rule.qNum}</strong> score is <strong>${rule.condition} ${rule.value}</strong></li>`).join('');
@@ -1045,10 +1111,10 @@
                 logicModalOverlay.classList.add('visible');
             }
 
-            function closeLogicModal() { 
-                logicModalOverlay.classList.remove('visible'); 
+            function closeLogicModal() {
+                logicModalOverlay.classList.remove('visible');
             }
-            
+
             // --- EXPORT FUNCTIONS ---
 
             async function exportAnalysisToPptx() {
@@ -1069,7 +1135,7 @@
                     const addFooter = (slide) => {
                         slide.addText(`Restricted © Siemens Energy, 2025`, { x: 0.5, y: 5.3, w: 9, h: 0.2, fontSize: 8, color: '6c757d', align: 'center' });
                     };
-                    
+
                     // Slide 1: Title
                     let slide = pptx.addSlide();
                     addFooter(slide);
@@ -1084,7 +1150,7 @@
                     addFooter(slide);
                     slide.addText('The Purpose of Using Lean Maturity Assessment', { x: 0.5, y: 0.4, w: 9, h: 0.6, fontSize: 24, bold: true, color: '4D217A' });
                     slide.addText(
-                        "The purpose of this analysis is to leverage the Maturity Assessment to identify our current strengths and, more importantly, the critical gaps in our Lean transformation. The outcome will be a targeted, data-driven action plan to address our biggest vulnerabilities and ensure the program delivers on its strategic business objectives.", 
+                        "The purpose of this analysis is to leverage the Maturity Assessment to identify our current strengths and, more importantly, the critical gaps in our Lean transformation. The outcome will be a targeted, data-driven action plan to address our biggest vulnerabilities and ensure the program delivers on its strategic business objectives.",
                         { x: 0.5, y: 1.2, w: 9, h: 3, fontSize: 16, color: '333333' }
                     );
 
@@ -1093,25 +1159,25 @@
                     addFooter(slide);
                     slide.addText('Lean Transformation Roadmap', { x: 0.5, y: 0.4, w: 9, h: 0.5, fontSize: 24, bold: true, color: '4D217A', align: 'center' });
                     slide.addText('[Insert Lean Transformation Roadmap Image Here]', { x: 0.5, y: 2.5, w: 9, h: 1, align: 'center', color: 'A9A9A9', italic: true });
-                    
+
                     // Slides 4...N: Stage Details
                     for (const result of assessmentDataStore) {
                         slide = pptx.addSlide();
                         addFooter(slide);
-                        
+
                         // Traffic Light Indicator
                         let verdictColor = '808080'; // Default gray for 'Pass' or others
                         if (result.verdict === 'Foundation Focus') verdictColor = 'FF0000'; // Red
                         if (result.verdict === 'Opportunity for Growth') verdictColor = 'FFC000'; // Yellow
                         if (result.verdict === 'Pass') verdictColor = '00B050'; // Green
 
-                        slide.addShape(pptx.shapes.OVAL, { 
-                            x: 9.2, y: 0.4, w: 0.3, h: 0.3, 
-                            fill: { color: verdictColor } 
+                        slide.addShape(pptx.shapes.OVAL, {
+                            x: 9.2, y: 0.4, w: 0.3, h: 0.3,
+                            fill: { color: verdictColor }
                         });
 
                         slide.addText(result.title, { x: 0.5, y: 0.4, w: 8.5, h: 0.5, fontSize: 22, bold: true, color: '4D217A' });
-                        
+
                         // Box for 'Looking For' - Made smaller
                         slide.addShape(pptx.shapes.RECTANGLE, { x: 0.5, y: 1.0, w: 9.0, h: 1.0, fill: { color: 'F8F9FA' } });
                         slide.addText('What We Are Looking For', { x: 0.6, y: 1.05, w: 8.8, h: 0.2, fontSize: 14, bold: true, color: '007777' });
@@ -1120,11 +1186,11 @@
                         // Box for 'Observation' - Made larger
                         slide.addShape(pptx.shapes.RECTANGLE, { x: 0.5, y: 2.2, w: 4.4, h: 2.8, fill: { color: 'F8F9FA' } });
                         slide.addText('Observation', { x: 0.6, y: 2.25, w: 4.2, h: 0.3, fontSize: 14, bold: true, color: '007777' });
-                        
+
                         const strengths = result.diagnostics.filter(d => d.rating > 3);
                         const gaps = result.diagnostics.filter(d => d.rating <= 3);
                         let observationLines = [];
-                        
+
                         const getSafeText = (diagnostic) => {
                             let text = diagnostic.comments || diagnostic.question || '';
                             text = text.replace(/<[^>]*>?/gm, ''); // Strip any HTML tags
@@ -1139,10 +1205,10 @@
                             observationLines.push({ text: 'Gaps:', options: { bold: true, breakLine: true } });
                             gaps.forEach(d => observationLines.push({ text: getSafeText(d), options: { breakLine: true } }));
                         }
-                        if(observationLines.length > 0) {
+                        if (observationLines.length > 0) {
                             slide.addText(observationLines, { x: 0.6, y: 2.6, w: 4.2, h: 2.3, fontSize: 10, color: '333333' });
                         }
-                        
+
                         // MODIFICATION START
                         // Box for 'Recommendation' - Made larger
                         slide.addShape(pptx.shapes.RECTANGLE, { x: 5.1, y: 2.2, w: 4.4, h: 2.8, fill: { color: 'F8F9FA' } });
@@ -1182,7 +1248,7 @@
                     const orgName = (assessmentMetadata.org || 'Analysis').replace(/[^a-z0-9]/gi, '_');
                     const date = analysisDateInput.value || new Date().toISOString().slice(0, 10);
                     const filename = `Maturity-Analysis-Results_${orgName}_${date}.pptx`;
-                    
+
                     await pptx.writeFile({ fileName: filename });
 
                 } catch (err) {
@@ -1209,7 +1275,7 @@
                 };
 
                 let csvContent = [];
-                
+
                 csvContent.push("Category,Detail");
                 csvContent.push(`Project/Dept,${escapeCsvCell(assessmentMetadata.projectName)}`);
                 csvContent.push(`Organization,${escapeCsvCell(assessmentMetadata.org)}`);
@@ -1218,7 +1284,7 @@
                 csvContent.push(`Scope,${escapeCsvCell(assessmentMetadata.scope)}`);
                 csvContent.push(`Analysed By,${escapeCsvCell(analysedByInput.value)}`);
                 csvContent.push(`Analysis Date,${escapeCsvCell(analysisDateInput.value)}`);
-                csvContent.push(""); 
+                csvContent.push("");
 
                 const resultsHeader = ["Stage", "Verdict", "Action Accepted", "OE Comment", "OE Action"];
                 csvContent.push(resultsHeader.join(','));
@@ -1251,7 +1317,7 @@
                 const orgName = (assessmentMetadata.org || 'Analysis').replace(/[^a-z0-9]/gi, '_');
                 const date = analysisDateInput.value || new Date().toISOString().slice(0, 10);
                 const filename = `Lean-Analysis-Results_${orgName}_${date}.csv`;
-                
+
                 const link = document.createElement("a");
                 if (link.download !== undefined) {
                     const url = URL.createObjectURL(blob);
@@ -1267,20 +1333,20 @@
             function generatePdfHeader(pdf) {
                 const headerData = JSON.parse(localStorage.getItem('leanMaturityHeader') || '{}');
                 const analysisDetails = JSON.parse(localStorage.getItem('leanAnalysisDetails') || '{}');
-                
+
                 const projectName = headerData['assessment-name'] || 'Lean Maturity Assessment';
                 const org = headerData['org-name'] || 'N/A';
                 const date = analysisDetails['analysisDate'] || headerData['assessment-date'] || 'N/A';
-                
+
                 pdf.setFontSize(22);
                 pdf.setFont(undefined, 'bold');
                 pdf.text('Lean Maturity Analysis Report', pdf.internal.pageSize.getWidth() / 2, 40, { align: 'center' });
-                
+
                 pdf.setFontSize(12);
                 pdf.setFont(undefined, 'normal');
                 pdf.text(`${projectName} - ${org}`, 40, 70);
                 pdf.text(`Analysis Date: ${date}`, pdf.internal.pageSize.getWidth() - 40, 70, { align: 'right' });
-                
+
                 pdf.setLineWidth(0.5);
                 pdf.line(40, 80, pdf.internal.pageSize.getWidth() - 40, 80);
             }
@@ -1290,7 +1356,7 @@
                     alert("Please upload an assessment file first.");
                     return;
                 }
-                
+
                 const pdf = new jsPDF('p', 'pt', 'a4');
                 generatePdfHeader(pdf);
                 let yPos = 100;
@@ -1311,7 +1377,7 @@
                     pdf.setFontSize(14);
                     pdf.setFont(undefined, 'bold');
                     pdf.text(result.title, margin, yPos);
-                    
+
                     pdf.setFontSize(10);
                     pdf.setFont(undefined, 'normal');
                     pdf.text(`Verdict: ${result.verdict}`, pdf.internal.pageSize.getWidth() - margin, yPos, { align: 'right' });
@@ -1322,30 +1388,30 @@
                     pdf.setFont(undefined, 'bold');
                     pdf.text('Diagnostic Questions:', margin, yPos);
                     yPos += lineHeight;
-                    
+
                     pdf.setFont(undefined, 'normal');
                     result.diagnostics.forEach(d => {
                         const diagText = `Q${d.qNum} (Score ${d.rating}/5): ${d.question}`;
                         const diagLines = pdf.splitTextToSize(diagText, contentWidth - 10);
                         if (yPos + (diagLines.length * lineHeight) > pageHeight - margin) {
-                             pdf.addPage();
-                             generatePdfHeader(pdf);
-                             yPos = 100;
+                            pdf.addPage();
+                            generatePdfHeader(pdf);
+                            yPos = 100;
                         }
                         pdf.text(diagLines, margin + 10, yPos);
                         yPos += diagLines.length * lineHeight;
                     });
-                    
+
                     yPos += lineHeight / 2;
-                    
+
                     // Recommendation
                     const recommendation = (result.oeAction && result.oeAction.trim() !== '') ? result.oeAction : result.recommendation;
                     const recText = `Action: ${recommendation.replace(/<[^>]*>?/gm, '')}`; // Strip HTML
                     const recLines = pdf.splitTextToSize(recText, contentWidth);
                     if (yPos + (recLines.length * lineHeight) > pageHeight - margin) {
-                         pdf.addPage();
-                         generatePdfHeader(pdf);
-                         yPos = 100;
+                        pdf.addPage();
+                        generatePdfHeader(pdf);
+                        yPos = 100;
                     }
                     pdf.setFont(undefined, 'bold');
                     pdf.text(recLines, margin, yPos);
@@ -1381,10 +1447,10 @@
                     const imgProps = pdf.getImageProperties(imgData);
                     const pdfWidth = pdf.internal.pageSize.getWidth();
                     const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-                    
+
                     let heightLeft = pdfHeight;
                     let position = 0;
-                    
+
                     pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
                     heightLeft -= pdf.internal.pageSize.getHeight();
 
@@ -1394,7 +1460,7 @@
                         pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, pdfHeight);
                         heightLeft -= pdf.internal.pageSize.getHeight();
                     }
-                    
+
                     const orgName = (assessmentMetadata.org || 'Analysis').replace(/[^a-z0-9]/gi, '_');
                     const date = analysisDateInput.value || new Date().toISOString().slice(0, 10);
                     const filename = `Action-Report_${orgName}_${date}.pdf`;
@@ -1417,4 +1483,5 @@
     </div>
 
 </body>
+
 </html>
